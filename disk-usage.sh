@@ -16,7 +16,7 @@ LOG_DIR="/var/log/Monitoring"
 echo
 echo "--> LOG Directory ${LOG_DIR} will be created ..."
 mkdir -p ${LOG_DIR}
-sleep ${SLEEP_TIME}
+#sleep ${SLEEP_TIME}
 
 echo "--> creation of ${LOG_DIR} succeed "
 
@@ -24,11 +24,11 @@ LOG_FILE="${LOG_DIR}/disk_usage.log"
 echo "--> creation of ${LOG_FILE} is starting ..."
 if [[ ! -f ${LOG_FILE} ]]; then
 	touch ${LOG_FILE}
-        sleep ${SLEEP_TIME} 
+        #sleep ${SLEEP_TIME} 
         echo "--> creation of ${LOG_FILE} is succed"
 else
         echo "--> LOG FILE ${LOG_FILE} already exist ..."
-	sleep ${SLEEP_TIME}
+	#sleep ${SLEEP_TIME}
 fi
 echo
 echo "--> check Disk usage information  ..."
@@ -61,16 +61,45 @@ if (( $disk_usage > $DISK_USAGE_LIMIT )); then
 	echo "============= get volume groupe Free Size to extend LV ==========="
 	V_NAME=$(vgs --noheadings 2> /dev/null | awk -F " " '{ print $1 }' )
         V_FREE=$(vgs --noheadings 2> /dev/null | awk -F " " '{ print $7 }' )
-	V_SIZE=$(vgs --noheadings 2> /dev/null | awk -F " " '{ print $6 }' ) 
+	V_SIZE=$(vgs --noheadings 2> /dev/null | awk -F " " '{ print $6 }'| sed  's/[<g]//g'  ) 
 	echo
 	echo "Volume group Name: $V_NAME"
 	echo "Volume group Total Size: $V_SIZE"
 	echo "Volume group Free Size: $V_FREE"
         echo	
+
 	echo "============= get Information about ogical Volume       ==========="
   	L_NAME=$(lvs --noheadings 2> /dev/null | grep -i ${V_NAME} | awk -F " " 'NR==1 { print $1 }')
-        L_SIZE=$(lvs --noheadings 2> /dev/null | grep -i ${V_NAME} | awk -F " " 'NR==1 { print $4 }')
+        L_SIZE=$(lvs --noheadings 2> /dev/null | grep -i ${L_NAME} | awk -F " " '{ print $4 }' | sed 's/[<g]//g')
 	echo
 	echo "Logical Volume Name: ${L_NAME}"
 	echo "Logical Volume Total Size: ${L_SIZE}"
+
+	if (( $V_FREE <= 0 ));then
+		echo "Volume $V_NAME don't have enought size"
+		PV_FREE=$(pvs --noheadings 2> /dev/null | grep $V_NAME |  awk -F " " '{ print $6 }' )
+		echo "PV Free:  ${PV_FREE}"
+	        
+		#< <(...) → process substitution, permet de lire la sortie de la commande
+                #readarray -t → lit chaque ligne et met chaque ligne dans un élément du tableau
+                #${#LIST_PV_NAME[@]} → nombre d’éléments réel	
+		#LIST_PV_NAME=$(pvs --noheadings 2> /dev/null |  awk -F " " '{ print $1 }'): ceci ne renvois pas d array
+		readarray -t LIST_PV_NAME < <(pvs --noheadings 2>/dev/null | awk '{print $1}')
+		#echo "${LIST_PV_NAME[@]}" # get number of pv Name
+		
+		echo
+		for pv in ${LIST_PV_NAME[@]};do
+		   #echo "pv_name: $pv --> VG: $(pvdisplay $pv 2>/dev/null| grep -i "VG NAME" | awk '{print $3}')"
+		   vg=$(pvdisplay $pv 2>/dev/null| grep -i "VG NAME" | awk '{print $3}')
+		   if [ -z "$vg" ]; then
+			   echo "${pv} don't have a Volume Group"
+		   else
+
+			   echo "${pv} has a Volume Group name ${vg}"
+	           fi
+                done 
+	
+	fi	
+
+	
 fi
