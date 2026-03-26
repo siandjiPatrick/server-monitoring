@@ -55,7 +55,16 @@ DISK_USAGE_LIMIT=10
 
 if (( $disk_usage > $DISK_USAGE_LIMIT )); then
 	echo "[ ALERT !!! ] Disk usage over ${DISK_USAGE_LIMIT}%"
-	source ../Mail/mail.attachement.sh
+	#source mail/mail.attachement.sh "${disk_usage}%"
+	#get volume groupe Free Size to extend LV
+	V_NAME=$(vgs --noheadings 2> /dev/null| awk -F " " '{ print $1 }' )
+        V_FREE=$(vgs --noheadings 2> /dev/null| awk -F " " '{ print $7 }' )
+	V_SIZE=$(vgs --noheadings 2> /dev/null| awk -F " " '{ print $6 }' )
+        
+	echo
+	echo "Volume group Name: $V_NAME"
+	echo "Volume group Total Size: $V_SIZE"
+	echo "Volume group Free Size: $V_FREE"
 fi
 
 
