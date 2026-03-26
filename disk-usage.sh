@@ -4,8 +4,9 @@
 #---------------------------------------------------|
 # This Skript is used to Monitore the Disk	    |
 # And Extend the size auf Mount point if the        |
-# disk usaged size rech 90%                         |
+# disk usaged size reach 90%                        |
 #---------------------------------------------------|
+#                                                   |
 #@uthor: Patrick Siandji			    |
 #						    |
 #----------------------------------------------------
@@ -53,7 +54,7 @@ echo
 # Limit the disk Usage on MOUNT Point of 10%
 DISK_USAGE_LIMIT=10
 
-if (( $disk_usage > $DISK_USAGE_LIMIT )); then
+if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
 	echo "[ ALERT !!! ] Disk usage over ${DISK_USAGE_LIMIT}%"
 	#source mail/mail.attachement.sh "${disk_usage}%"
 	
@@ -74,7 +75,12 @@ if (( $disk_usage > $DISK_USAGE_LIMIT )); then
 	echo
 	echo "Logical Volume Name: ${L_NAME}"
 	echo "Logical Volume Total Size: ${L_SIZE}"
-
+       
+        #check if we still have more free space in the volume group
+	#if not will extend the Volume Group
+	#If we don t have a phisical Volume (PV) to extend the Volume Groub we will create one
+	#if we dont have a phisical Device to create a PV we will print an Alert with the message
+        #message :: this disk is full an cannot be extend. You need to Add a physical device	
 	if (( $V_FREE <= 0 ));then
 		echo "Volume $V_NAME don't have enought size"
 		PV_FREE=$(pvs --noheadings 2> /dev/null | grep $V_NAME |  awk -F " " '{ print $6 }' )
@@ -91,15 +97,21 @@ if (( $disk_usage > $DISK_USAGE_LIMIT )); then
 		for pv in ${LIST_PV_NAME[@]};do
 		   #echo "pv_name: $pv --> VG: $(pvdisplay $pv 2>/dev/null| grep -i "VG NAME" | awk '{print $3}')"
 		   vg=$(pvdisplay $pv 2>/dev/null| grep -i "VG NAME" | awk '{print $3}')
+
+		   #
 		   if [ -z "$vg" ]; then
 			   echo "${pv} don't have a Volume Group"
+			   command_extend_vg=$(vgextend ${V_NAME} ${pv})
 		   else
 
 			   echo "${pv} has a Volume Group name ${vg}"
 	           fi
                 done 
 	
-	fi	
+	fi
 
-	
+	#Extend the Logical Volume Size  and Resize the Filesystem
+	#Todo extend to 10% of VG
+	lvextend -L +1K -r  /dev/${V_NAME}/${L_NAME} 2> /dev/null
+	echo $?
 fi
