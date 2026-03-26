@@ -56,15 +56,21 @@ DISK_USAGE_LIMIT=10
 if (( $disk_usage > $DISK_USAGE_LIMIT )); then
 	echo "[ ALERT !!! ] Disk usage over ${DISK_USAGE_LIMIT}%"
 	#source mail/mail.attachement.sh "${disk_usage}%"
-	#get volume groupe Free Size to extend LV
-	V_NAME=$(vgs --noheadings 2> /dev/null| awk -F " " '{ print $1 }' )
-        V_FREE=$(vgs --noheadings 2> /dev/null| awk -F " " '{ print $7 }' )
-	V_SIZE=$(vgs --noheadings 2> /dev/null| awk -F " " '{ print $6 }' )
-        
+	
+        #get volume groupe Free Size to extend LV
+	echo "============= get volume groupe Free Size to extend LV ==========="
+	V_NAME=$(vgs --noheadings 2> /dev/null | awk -F " " '{ print $1 }' )
+        V_FREE=$(vgs --noheadings 2> /dev/null | awk -F " " '{ print $7 }' )
+	V_SIZE=$(vgs --noheadings 2> /dev/null | awk -F " " '{ print $6 }' ) 
 	echo
 	echo "Volume group Name: $V_NAME"
 	echo "Volume group Total Size: $V_SIZE"
 	echo "Volume group Free Size: $V_FREE"
+        echo	
+	echo "============= get Information about ogical Volume       ==========="
+  	L_NAME=$(lvs --noheadings 2> /dev/null | grep -i ${V_NAME} | awk -F " " 'NR==1 { print $1 }')
+        L_SIZE=$(lvs --noheadings 2> /dev/null | grep -i ${V_NAME} | awk -F " " 'NR==1 { print $4 }')
+	echo
+	echo "Logical Volume Name: ${L_NAME}"
+	echo "Logical Volume Total Size: ${L_SIZE}"
 fi
-
-
