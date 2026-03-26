@@ -56,8 +56,8 @@ DISK_USAGE_LIMIT=10
 
 if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
 	echo "[ ALERT !!! ] Disk usage over ${DISK_USAGE_LIMIT}%"
-	#source mail/mail.attachement.sh "${disk_usage}%"
-	
+	source mail/send-monitoring-mail.sh "" "" "" "" "" "Bad" "red" "" 
+
         #get volume groupe Free Size to extend LV
 	echo "============= get volume groupe Free Size to extend LV ==========="
 	V_NAME=$(vgs --noheadings 2> /dev/null | awk -F " " '{ print $1 }' )
