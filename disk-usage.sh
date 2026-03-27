@@ -56,8 +56,35 @@ DISK_USAGE_LIMIT=10
 if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
 	echo
 	echo "[ ALERT !!! ] Disk usage over ${DISK_USAGE_LIMIT}%"
-	#                                    1  2  3  4  5   6     7    8         9                      10               12                  13                   14
-	#source mail/send-monitoring-mail.sh "" "" "" "" "" "OK" "green" "" "${disk_partition_name}" "${device_typ}" "${MOUNT_POINT}" "${disk_filesystem_typ}" "${disk_usage}%"
+	
+	TO=""
+        SUBJECT="Patrickstyl - Homelab Monitoring"
+        FROM="Monitoring Service  <monitoring-service@gmail.com>"
+        BODY=""
+        USERNAME="Devops-Team"
+        STATUS="OK"
+        COLOR_STATUS="green"
+        MAIL_TITLE="Disk Server Monitoring"
+        DISK_PART_NAME="${disk_partition_name}"
+        DEVICE_TYPE="${device_typ}"
+        MOUNT_POINT="${MOUNT_POINT}"
+        DISK_FS_TYP="${disk_filesystem_typ}"
+        DISK_USAGE="${disk_usage}%"
+
+	source mail/send-monitoring-mail.sh \
+	"$TO"                  \
+        "$SUBJECT"             \
+        "$FROM"                \
+        "$BODY"                \
+        "$USERNAME"            \
+        "$STATUS"              \
+        "$COLOR_STATUS"        \
+        "$MAIL_TITLE"          \
+        "$DISK_PART_NAME"      \
+        "$DEVICE_TYPE"         \
+        "$MOUNT_POINT"         \
+        "$DISK_FS_TYP"         \
+        "$DISK_USAGE"          
 
         #get volume groupe Free Size to extend LV
 	echo "============= get volume groupe Free Size to extend LV ==========="
@@ -77,61 +104,75 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
 	echo "Logical Volume Name: ${L_NAME}"
 	echo "Logical Volume Total Size: ${L_SIZE}"
        
-        #check if we still have more free space in the volume group
-	#if not will extend the Volume Group
-	#If we don t have a phisical Volume (PV) to extend the Volume Groub we will create one
-	#if we dont have a phisical Device to create a PV we will print an Alert with the message
-        #message :: this disk is full an cannot be extend. You need to Add a physical device	
+	# --> check if we still have more free space in the volume group
+	# --> Extend the Volume Group if we still have more free space in the volume group
+	# --> check If we  have a phisical Volume (PV) to extend the Volume Group
+	# --> Check if the PV is already attached to one Lolume Group (VG)
+	# --> Create a PV IF we dont have one
+	# --> Check if we have unmount and unsigned disk Device 
+	# --> if we dont have a phisical Device to create a PV we will print an Alert message
+	# --> Alert message -> this disk is full an cannot be extend. You need to Add a physical device	
+	
+	# 1-check if we still have more free space in the volume group
 	if [[ $(echo "$V_FREE <= 0" | bc)  ]];then
-		echo "Volume $V_NAME don't have enought size"
-		PV_FREE=$(pvs --noheadings 2> /dev/null | grep $V_NAME |  awk -F " " '{ print $6 }' )
+		echo "Volume $V_NAME don't have Free Space"
+		
+
+		PV_FREE=$(pvs --noheadings 2> /dev/null | grep $V_NAME |  awk -F " " '{ print $6 }' | uniq )
 		echo "PV Free:  ${PV_FREE}"
 	        
 		#< <(...) → process substitution, permet de lire la sortie de la commande
                 #readarray -t → lit chaque ligne et met chaque ligne dans un élément du tableau
                 #${#LIST_PV_NAME[@]} → nombre d’éléments réel	
-		#LIST_PV_NAME=$(pvs --noheadings 2> /dev/null |  awk -F " " '{ print $1 }'): ceci ne renvois pas d array
 		readarray -t LIST_PV_NAME < <(pvs --noheadings 2>/dev/null | awk '{print $1}')
 		#echo "${LIST_PV_NAME[@]}" # get number of pv Name
 		
 		echo
-		#check if we have more than 1 PV
+		# 2- check If we  have a phisical Volume (PV) to extend the Volume Group
 		if (( ${#LIST_PV_NAME[@]} > 2 )); then
 	     	    for pv in ${LIST_PV_NAME[@]};do
 		        #echo "pv_name: $pv --> VG: $(pvdisplay $pv 2>/dev/null| grep -i "VG NAME" | awk '{print $3}')"
 		        vg=$(pvdisplay $pv 2>/dev/null| grep -i "VG NAME" | awk '{print $3}')
-
+                        
+			# 3- Check if the PV is already attached to one Lolume Group (VG)
        		        if [ -z "$vg" ]; then
 			    echo "${pv} don't have a Volume Group"
-			    command_extend_vg=$(vgextend ${V_NAME} ${pv})
+			    
+			    #Check if the PV is already attached to one Lolume Group (VG)
+			    #vgextend ${V_NAME} ${pv}
+
 		        else
 
 			    echo "${pv} has a Volume Group name ${vg}"
 	                fi
                     done
-
+                
+		# we have to Create a PV IF we dont have anyone
 	        else
-		    # check new and unmount disk
-
 		    # Get all devices
 		    echo "Get all Devices on the System"
 		    readarray -t DEVICES < <(lsblk -npr -o NAME,MOUNTPOINT | awk '$2=="" { print $1 }')
 		    echo ${DEVICES[@]}
 		    
 		    EMPTY_DISK_DEViCES=()
-		    #check if asignature on Devices exists
+		    
+		    # check if asignature on Devices exists
 		    for dev in ${DEVICES[@]};do
 			if [ $(blkid ${dev} | wc -l ) -lt 1 ];then
-			       echo "disk $dev can be used to create PV"
+		
+		 	       echo "disk $dev can be used to create PV"
 			       EMPTY_DISK_DEViCES+=("$dev")
-			       echo "PV will be created with the first match ${dev}"
-			       pvcreate $dev
+			       echo "PV will be created with the first match ${dev} ..."
+			       #pvcreate $dev
+			       echo "pv was succefull created"
 			       break
 		        else
 		               echo "Warning: Disk $dev is not empty. It will be remove from devices set"
-			       unset $dev $DEVICES
+			       #unset $dev $DEVICES
 		        fi		
 		    done
+		    [[ ${#EMPTY_DISK_DEViCES[@]} == 0 ]] && \
+		      echo "Alert !!! : you have to Add a physical device to extend your disk Space"
 	        fi
 		
 	
@@ -140,5 +181,4 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
 	#Extend the Logical Volume Size  and Resize the Filesystem
 	#Todo extend to 10% of VG
 	#lvextend -L +1K -r  /dev/${V_NAME}/${L_NAME} 2> /dev/null
-	echo $?
 fi
