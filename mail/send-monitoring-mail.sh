@@ -4,6 +4,13 @@ DEFAULT_USERNAME=${5:-"Team"}
 DEFAULT_STATUS=${6:-"oK"}
 DEFAULT_STATUS_COLOR=${7:-"green"}
 DEFAULT_MAIL_TITLE=${8:-"Disk Server Monitoring"}
+
+DISK_PART_NAME=${9:-""}
+DEVICE_TYPE=${10:-""}
+MOUNT_POINT=${11:-""}
+DISK_FS_TYP=${12:-""}
+DISK_USAGE=${13:-""}
+
 DEFAULT_SENDER="DevOps-Team <devops-team@gmail.com>"
 DEFAULT_RECIPIENT="siandjipatrick@yahoo.fr"
 DEFAULT_SUBJECT="Patrickstyl - Homelab Monitoring"
@@ -13,18 +20,19 @@ DEFAULT_BODY=$(cat << EOF
     <h2>${DEFAULT_MAIL_TITLE}</h2>
     <p style="color:${DEFAULT_STATUS_COLOR};"><b>Status ${DEFAULT_STATUS}</b></p>
     <ul>
-      <li>Disk Usage : 23%</li>
-      <li>RAM : 12%</li>
-      <li>RAM : 12%</li>
-      <li>RAM : 12%</li>
+      <li>Disk Partition Name : ${DISK_PART_NAME}</li>
+      <li>Device Typ : ${DEVICE_TYPE}</li>
+      <li>Mount Point : ${MOUNT_POINT}</li>
+      <li>Disk Filesystem typ : ${DISK_FS_TYP}</li>
+      <li>Disk Usage on Mount Point : ${DISK_USAGE}</li>
     </ul>
-    <p>Cordialement,<br>Patrick Siandji</p>
+    <p>Cordialement,<br>${DEFAULT_USERNAME}</p>
   </body>
 </html>
 
 --BOUNDARY
 Content-Type: text/plain; name="rapport.txt"
-Content-Disposition: attachment; filename="rapport.txt"
+Content-Disposition: attachment; filename="content-Disp.txt"
 Content-Transfer-Encoding: base64
 
 $(base64 mail/rapport.txt)
