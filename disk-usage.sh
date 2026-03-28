@@ -57,21 +57,21 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
 	echo
 	echo "[ ALERT !!! ] Disk usage over ${DISK_USAGE_LIMIT}%"
 	
-	TO="siandjipatrick@yahoo.fr asmitterand@yahoo.fr"
-        SUBJECT="Patrickstyl - Homelab Monitoring"
+	TO="siandjipatrick@yahoo.fr"
+        SUBJECT="[ ALERT !!! ] Disk usage over ${DISK_USAGE_LIMIT}%"
         FROM="Monitoring Service  <monitoring-service@gmail.com>"
         BODY=""
         USERNAME="Devops-Team"
-        STATUS="OK"
-        COLOR_STATUS="green"
-        MAIL_TITLE="Disk Server Monitoring"
+        STATUS="BAD"
+        COLOR_STATUS="red"
+	MAIL_TITLE="Disk Server Monitoring on $LOG_FORMAT"
         DISK_PART_NAME="${disk_partition_name}"
         DEVICE_TYPE="${device_typ}"
         MOUNT_POINT="${MOUNT_POINT}"
         DISK_FS_TYP="${disk_filesystem_typ}"
         DISK_USAGE="${disk_usage}%"
         
-	: <<'COMMENT'
+	
 	source mail/send-monitoring-mail.sh \
 	"$TO"                  \
         "$SUBJECT"             \
@@ -86,7 +86,6 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
         "$MOUNT_POINT"         \
         "$DISK_FS_TYP"         \
         "$DISK_USAGE"          
-COMMENT
 
         #get volume groupe Free Size to extend LV
 	echo "============= get volume groupe Free Size to extend LV ==========="
@@ -116,12 +115,12 @@ COMMENT
 	# --> Alert message -> this disk is full an cannot be extend. You need to Add a physical device	
 	
 	# 1-check if we still have more free space in the volume group
-	if [[ $(echo "$V_FREE <= 0" | bc)  ]];then
+	if [[ $(echo "$V_FREE <= 10" | bc) -eq 1  ]];then
 		echo "Volume $V_NAME don't have Free Space"
 		
-		# check If we  have a Free physical Volume (PV) mounted on $V_NAME to extend the Volume Group
+		# check If we  have a Free physical Volume (PV) to extend the Volume Group
 		readarray -t UNEXTENDED_PVS < <(pvs --noheadings -o pv_name,vg_name 2> /dev/null |
-				     awk -F " " '$2 == "" { print $1 }' | sed 's/[<>g]//g' )
+				     awk -F " " '$2 == "" { print $1 }')
 		echo "PV Free:  ${UNEXTENDED_PVS[@]}"
 		
 		free_size=()
@@ -133,7 +132,9 @@ COMMENT
 			done
 			readarray -t sorted_free_size < <(printf "%s\n" "${free_size[@]}" | sort -nr)
 		   	echo "free size : ${sorted_free_size[@]}"
-			readarray pv_big_size < <(pvs --noheadings -o pv_name,pv_free,vg_name | grep ${sorted_free_size[0]} | awk ' $3 == "" {print $1}')
+			readarray pv_big_size < <(pvs --noheadings -o pv_name,pv_free,vg_name |
+			                		          grep ${sorted_free_size[0]} |
+								  awk ' $3 == "" {print $1}')
 			echo "PV with big size --> ${pv_big_size[0]}"
 			
 			# extend the VG with the PV with the biggest size
@@ -146,63 +147,39 @@ COMMENT
 
 		        #fi
 		else
-			echo "All Pvs are extended  already"
-
-	        fi 
-		
-		readarray -t LIST_PV_NAME < <(pvs --noheadings 2>/dev/null | awk '{print $1}')
-		#echo "${LIST_PV_NAME[@]}" # get number of pv Name
-		
-		echo
-		# 2- check If we  have a phisical Volume (PV) to extend the Volume Group
-		if (( ${#LIST_PV_NAME[@]} > 2 )); then
-	     	    for pv in ${LIST_PV_NAME[@]};do
-		        #echo "pv_name: $pv --> VG: $(pvdisplay $pv 2>/dev/null| grep -i "VG NAME" | awk '{print $3}')"
-		        vg=$(pvdisplay $pv 2>/dev/null| grep -i "VG NAME" | awk '{print $3}')
-                        
-			# 3- Check if the PV is already attached to one Lolume Group (VG)
-       		        if [ -z "$vg" ]; then
-			    echo "${pv} don't have a Volume Group"
-			    
-			    #Check if the PV is already attached to one Lolume Group (VG)
-			    #vgextend ${V_NAME} ${pv}
-
-		        else
-
-			    echo "${pv} has a Volume Group name ${vg}"
-	                fi
-                    done
-                
-		# we have to Create a PV IF we dont have anyone
-	        else
-		    # Get all devices
-		    echo "Get all Devices on the System"
-		    readarray -t DEVICES < <(lsblk -npr -o NAME,MOUNTPOINT | awk '$2=="" { print $1 }')
-		    echo ${DEVICES[@]}
+	               echo "All Pvs are already extended"
+		       #Check if we have unmount and unsigned disk Device 
+		       echo "Get all unmounted Devices on the System"
+		       readarray -t DEVICES < <(lsblk -npr -o NAME,MOUNTPOINT | awk '$2=="" { print $1 }')
+		       echo ${DEVICES[@]}
 		    
-		    EMPTY_DISK_DEViCES=()
-		    
-		    # check if asignature on Devices exists
-		    for dev in ${DEVICES[@]};do
-			if [ $(blkid ${dev} | wc -l ) -lt 1 ];then
-		
-		 	       echo "@@ info >>> disk $dev will be used to create PV"
-			       EMPTY_DISK_DEViCES+=("$dev")
-			       echo "PV will be created with the first match ${dev} ..."
-			       #pvcreate $dev
-			       echo "pv was succefull created"
-			       break
-		        else
-		               echo "Warning: Disk $dev is not empty. It will be remove from devices set"
-			       #unset $dev $DEVICES
-		        fi		
-		    done
-		    [[ ${#EMPTY_DISK_DEViCES[@]} == 0 ]] && \
-		      echo "Alert !!! : you have to Add a physical device to extend your disk Space"
+		       EMPTY_DISK_DEViCES=()
+		       # check if a signature on Devices exists
+		       for dev in ${DEVICES[@]};do
+		            if [ $(blkid ${dev} | wc -l ) -lt 1 ];then   
+		 	         echo "@@ info >>> disk $dev will be used to create PV"
+			         EMPTY_DISK_DEViCES+=("$dev") 
+			       
+			         # create a new PV
+			         echo "PV will be created with the first match ${dev} ..."
+			         pvcreate $dev
+			         echo "pv was succefull created"
+				 # extend the VG with the created PV 
+                                 vgextend $V_NAME ${dev}
+          
+			         break
+		           else
+		                 echo "Warning: Disk $dev is not empty. It will be remove from empty disk devices set"
+			         #unset $dev $DEVICES
+		           fi		
+		       done
+		       [[ ${#EMPTY_DISK_DEViCES[@]} == 0 ]] && \
+		       echo "Alert !!! : you have to Add a physical device to extend your disk Space"
 	        fi
 	else
-		# Extend Lv
-		echo "/dev/${V_NAME}/${L_NAME}"
+		# Extend Lv of 100%free space
+		echo
+		echo "The Logical Vaolume (LV)  $L_NAME will be extend of $V_FREE"
 		#lvextend -l %100FREE -r /dev/${V_NAME}/${L_NAME}
 
 		
