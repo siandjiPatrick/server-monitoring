@@ -1,24 +1,24 @@
-#/bin/bash                                          |
-#					            |
-#Description					    |
-#---------------------------------------------------|
-# This Skript is used to Monitore the Disk	    |
-# And Extend the size auf Mount point if the        |
-# disk usaged size reach 90%                        |
-#---------------------------------------------------|
-#                                                   |
-#@uthor: Patrick Siandji			    |
-#						    |
-#----------------------------------------------------
+#/bin/bash
+
+: <<"COMMENT"
+Description	
+---------------------------------------------------------------------------------------------------
+ This Skript is used to Monitore the Disk	   
+ And Extend the size auf Mount point if the        
+ disk usaged size reach 90%                        
+
+---------------------------------------------------------------------------------------------------                                                   
+@uthor: Patrick Siandji		
+COMMENT
 
 SLEEP_TIME=2
 LOG_FORMAT=$(date "+%Y-%m-%d %H:%M:%S")
 LOG_DIR="/var/log/Monitoring"
+
 echo
 echo "--> LOG Directory ${LOG_DIR} will be created ..."
 mkdir -p ${LOG_DIR}
 #sleep ${SLEEP_TIME}
-
 echo "--> creation of ${LOG_DIR} succeed "
 
 LOG_FILE="${LOG_DIR}/disk_usage.log"
@@ -57,7 +57,7 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
 	echo
 	echo "[ ALERT !!! ] Disk usage over ${DISK_USAGE_LIMIT}%"
 	
-	TO=""
+	TO="siandjipatrick@yahoo.fr asmitterand@yahoo.fr"
         SUBJECT="Patrickstyl - Homelab Monitoring"
         FROM="Monitoring Service  <monitoring-service@gmail.com>"
         BODY=""
@@ -70,7 +70,8 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
         MOUNT_POINT="${MOUNT_POINT}"
         DISK_FS_TYP="${disk_filesystem_typ}"
         DISK_USAGE="${disk_usage}%"
-
+        
+	: <<'COMMENT'
 	source mail/send-monitoring-mail.sh \
 	"$TO"                  \
         "$SUBJECT"             \
@@ -85,6 +86,7 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
         "$MOUNT_POINT"         \
         "$DISK_FS_TYP"         \
         "$DISK_USAGE"          
+COMMENT
 
         #get volume groupe Free Size to extend LV
 	echo "============= get volume groupe Free Size to extend LV ==========="
@@ -117,13 +119,37 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
 	if [[ $(echo "$V_FREE <= 0" | bc)  ]];then
 		echo "Volume $V_NAME don't have Free Space"
 		
+		# check If we  have a Free physical Volume (PV) mounted on $V_NAME to extend the Volume Group
+		readarray -t UNEXTENDED_PVS < <(pvs --noheadings -o pv_name,vg_name 2> /dev/null |
+				     awk -F " " '$2 == "" { print $1 }' | sed 's/[<>g]//g' )
+		echo "PV Free:  ${UNEXTENDED_PVS[@]}"
+		
+		free_size=()
+		# if we have more than one PV with free space , 
+		# then we will take the pv with the biggest to extend the VG
+		if [[ ${#UNEXTENDED_PVS[@]} -gt  0 ]];then
+			for pv in ${UNEXTENDED_PVS[@]};do
+				free_size+=($(pvs --noheadings -o pv_free $pv 2> /dev/null | sed 's/[<>]//g'))
+			done
+			readarray -t sorted_free_size < <(printf "%s\n" "${free_size[@]}" | sort -nr)
+		   	echo "free size : ${sorted_free_size[@]}"
+			readarray pv_big_size < <(pvs --noheadings -o pv_name,pv_free,vg_name | grep ${sorted_free_size[0]} | awk ' $3 == "" {print $1}')
+			echo "PV with big size --> ${pv_big_size[0]}"
+			
+			# extend the VG with the PV with the biggest size
+			vgextend $V_NAME ${pv_big_size[0]}	
 
-		PV_FREE=$(pvs --noheadings 2> /dev/null | grep $V_NAME |  awk -F " " '{ print $6 }' | uniq )
-		echo "PV Free:  ${PV_FREE}"
-	        
-		#< <(...) → process substitution, permet de lire la sortie de la commande
-                #readarray -t → lit chaque ligne et met chaque ligne dans un élément du tableau
-                #${#LIST_PV_NAME[@]} → nombre d’éléments réel	
+			# extend LV
+		   
+			# resize FS on LV
+			#if  ;then
+
+		        #fi
+		else
+			echo "All Pvs are extended  already"
+
+	        fi 
+		
 		readarray -t LIST_PV_NAME < <(pvs --noheadings 2>/dev/null | awk '{print $1}')
 		#echo "${LIST_PV_NAME[@]}" # get number of pv Name
 		
@@ -160,7 +186,7 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
 		    for dev in ${DEVICES[@]};do
 			if [ $(blkid ${dev} | wc -l ) -lt 1 ];then
 		
-		 	       echo "disk $dev can be used to create PV"
+		 	       echo "@@ info >>> disk $dev will be used to create PV"
 			       EMPTY_DISK_DEViCES+=("$dev")
 			       echo "PV will be created with the first match ${dev} ..."
 			       #pvcreate $dev
@@ -174,6 +200,11 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
 		    [[ ${#EMPTY_DISK_DEViCES[@]} == 0 ]] && \
 		      echo "Alert !!! : you have to Add a physical device to extend your disk Space"
 	        fi
+	else
+		# Extend Lv
+		echo "/dev/${V_NAME}/${L_NAME}"
+		#lvextend -l %100FREE -r /dev/${V_NAME}/${L_NAME}
+
 		
 	
 	fi
