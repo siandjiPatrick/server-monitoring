@@ -10,6 +10,57 @@ Description
 ---------------------------------------------------------------------------------------------------                                                   
 @uthor: Patrick Siandji		
 COMMENT
+is_part(){
+         [[ $(lsblk -pnd -o TYPE $1 | head -n1) == "part" ]] 
+
+}
+
+needs_pvresize() {
+    TOLERANCE=$(echo "3.5 * 1024 * 1024" | bc)
+    echo "tolerance $TOLERANCE bytes"
+    for pv in "${PV_ATTACHED_ON_VG[@]}"; do
+	echo
+	echo "Function needs_resize"
+	echo "pv = $pv"
+	if is_part "$pv"; then
+	    echo "ceci est une partition"
+	    parent=$(lsblk -dn -o pkname "$pv")
+	    echo "parent $parent"
+	    pv_parent="/dev/$parent"
+	    echo "pv parent ->  $pv_parent"
+	    pv_size=$(pvs --noheadings --units b --nosuffix -o pv_size "$pv" 2>/dev/null | tr -d ' ')
+	    disk_size=$(lsblk -b -dn -o SIZE "$pv_parent")
+	    echo "disk size $pv_parent --> $disk_size"
+	    echo "pv size $pv  --> $pv_size"
+	else
+	    echo "ceci n est pas une partition"
+            pv_size=$(pvs --noheadings --units b --nosuffix -o pv_size "$pv" 2>/dev/null | tr -d ' ')
+            disk_size=$(lsblk -b -dn -o SIZE $pv)
+	    echo "PV size $pv --> $pv_size"
+	    echo "disk size $pv --> $disk_size"
+	fi
+         
+        if [[ -n "$pv_size" && -n "$disk_size" ]]; then
+            diff=$((disk_size - pv_size))
+            echo "diff = $diff bytes"
+
+	    if (( $(echo "diff > TOLERANCE" | bc) )); then
+                echo "→ pvresize needed"
+                #pvresize "$pv"
+            else
+                echo "→ no resize needed"
+            fi
+        fi
+       
+  	
+    done
+    echo
+    echo "retourne faux"
+    echo "fin for pv = $pv"
+    return 1   # false
+
+}
+
 
 SLEEP_TIME=2
 LOG_FORMAT=$(date "+%Y-%m-%d %H:%M:%S")
@@ -71,7 +122,7 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
         DISK_FS_TYP="${disk_filesystem_typ}"
         DISK_USAGE="${disk_usage}%"
         
-	
+	: << COMMENT	
 	source mail/send-monitoring-mail.sh \
 	"$TO"                  \
         "$SUBJECT"             \
@@ -86,7 +137,7 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
         "$MOUNT_POINT"         \
         "$DISK_FS_TYP"         \
         "$DISK_USAGE"          
-
+COMMENT
         #get volume groupe Free Size to extend LV
 	echo "============= get volume groupe Free Size to extend LV ==========="
 	V_NAME=$(vgs --noheadings 2> /dev/null | awk -F " " '{ print $1 }' )
@@ -115,12 +166,25 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
 	# --> Alert message -> this disk is full an cannot be extend. You need to Add a physical device	
 	
 	# 1-check if we still have more free space in the volume group
-	if [[ $(echo "$V_FREE <= 10" | bc) -eq 1  ]];then
+	if [[ $(echo "$V_FREE <= 15" | bc) -eq 1  ]];then
 		echo "Volume $V_NAME don't have Free Space"
 		
+		readarray -t PV_ATTACHED_ON_VG < <(pvs --noheadings -o pv_name,vg_name 2> /dev/null |
+                                     awk -F " "  -v vg="$V_NAME" '$2 == vg { print $1 }')
+		echo "PV_ATTACHED_ON_VG ${PV_ATTACHED_ON_VG[@]}"
+		: <<'COMMENT'
+		#get parent of partion if pv is attached on Partition
+		for i in "${!PV_ATTACHED_ON_VG[@]}";do
+			[[ $(lsblk -pnd -o TYPE ${PV_ATTACHED_ON_VG[$i]} | head -n1) == "part" ]] &&
+				PV_ATTACHED_ON_VG[$i]="/dev/$(lsblk -dn -o pkname ${PV_ATTACHED_ON_VG[$i]})"
+		done
+		echo "PV_ATTACHED_ON_VG after check parent of part ${PV_ATTACHED_ON_VG[@]}"
+COMMENT
+
 		# check If we  have a Free physical Volume (PV) to extend the Volume Group
 		readarray -t UNEXTENDED_PVS < <(pvs --noheadings -o pv_name,vg_name 2> /dev/null |
 				     awk -F " " '$2 == "" { print $1 }')
+
 		echo "PV Free:  ${UNEXTENDED_PVS[@]}"
 		
 		free_size=()
@@ -144,8 +208,12 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
 		   
 			# resize FS on LV
 			#if  ;then
-
+			
 		        #fi
+		
+		elif needs_pvresize; then
+                        echo "Some PVs need resize → running pvresize"
+		
 		else
 	               echo "All Pvs are already extended"
 		       #Check if we have unmount and unsigned disk Device 
@@ -175,6 +243,8 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
 		       done
 		       [[ ${#EMPTY_DISK_DEViCES[@]} == 0 ]] && \
 		       echo "Alert !!! : you have to Add a physical device to extend your disk Space"
+		       #TO DO
+		       # do a backup if 
 	        fi
 	else
 		# Extend Lv of 100%free space
