@@ -10,54 +10,64 @@ Description
 ---------------------------------------------------------------------------------------------------                                                   
 @uthor: Patrick Siandji		
 COMMENT
-is_part(){
-         [[ $(lsblk -pnd -o TYPE $1 | head -n1) == "part" ]] 
 
+is_a_partition(){
+    [[ $(lsblk -pnd -o TYPE $1 | head -n1) == "part" ]] 
 }
 
-needs_pvresize() {
-    TOLERANCE=$(echo "3.5 * 1024 * 1024" | bc)
-    echo "tolerance $TOLERANCE bytes"
-    for pv in "${PV_ATTACHED_ON_VG[@]}"; do
-	echo
-	echo "Function needs_resize"
-	echo "pv = $pv"
-	if is_part "$pv"; then
-	    echo "ceci est une partition"
-	    parent=$(lsblk -dn -o pkname "$pv")
-	    echo "parent $parent"
-	    pv_parent="/dev/$parent"
-	    echo "pv parent ->  $pv_parent"
-	    pv_size=$(pvs --noheadings --units b --nosuffix -o pv_size "$pv" 2>/dev/null | tr -d ' ')
-	    disk_size=$(lsblk -b -dn -o SIZE "$pv_parent")
-	    echo "disk size $pv_parent --> $disk_size"
-	    echo "pv size $pv  --> $pv_size"
-	else
-	    echo "ceci n est pas une partition"
-            pv_size=$(pvs --noheadings --units b --nosuffix -o pv_size "$pv" 2>/dev/null | tr -d ' ')
-            disk_size=$(lsblk -b -dn -o SIZE $pv)
-	    echo "PV size $pv --> $pv_size"
-	    echo "disk size $pv --> $disk_size"
-	fi
-         
-        if [[ -n "$pv_size" && -n "$disk_size" ]]; then
-            diff=$((disk_size - pv_size))
-            echo "diff = $diff bytes"
+#can_be_used_as_pv(){
 
-	    if (( $(echo "diff > TOLERANCE" | bc) )); then
-                echo "→ pvresize needed"
-                #pvresize "$pv"
-            else
-                echo "→ no resize needed"
+#}
+
+needs_pvresize() {
+    local VG_NAME=$1
+    #delete the first element with shift
+    shift
+    local PV_ATTACHED_ON_VG=("$@")
+    local TOLERANCE=$(echo "4 * 1024 * 1024" | bc)
+    local need_resizing=()
+   
+    for pv in ${PV_ATTACHED_ON_VG[@]}; do
+	echo >&2
+	echo "pv = $pv" >&2
+	if [[  $(pvs --no-headings -o vg_name "$pv"| xargs) == "$VG_NAME" ]];then
+
+	    if is_a_partition "$pv"; then
+	        parent=$(lsblk -dn -o pkname "$pv")
+	        pv_parent="/dev/$parent"
+	        echo "pv parent ->  $pv_parent" >&2
+	        pv_size=$(pvs --noheadings --units b --nosuffix -o pv_size "$pv" 2>/dev/null | tr -d ' ')
+	        disk_size=$(lsblk -b -dn -o SIZE "$pv_parent")
+	        echo "disk size $pv_parent --> $disk_size" >&2
+	        echo "pv size $pv  --> $pv_size" >&2
+	    else
+                pv_size=$(pvs --noheadings --units b --nosuffix -o pv_size "$pv" 2>/dev/null | tr -d ' ')
+                disk_size=$(lsblk -b -dn -o SIZE $pv)
+	        echo "PV size $pv --> $pv_size" >&2
+	        echo "disk size $pv --> $disk_size" >&2
+	    fi
+
+            #compare disk-size with pv size 
+            if [[ -n "$pv_size" && -n "$disk_size" ]]; then
+                diff=$((disk_size - pv_size))
+                echo "diff = $diff bytes" >&2
+
+	        if (( $(echo "$diff > $TOLERANCE" | bc) )); then
+                    echo "→ pvresize needed" >&2
+		    need_resizing+=("$pv")
+                else
+                    echo "→ no resize needed" >&2
+                fi
             fi
-        fi
-       
-  	
+	fi
     done
-    echo
-    echo "retourne faux"
-    echo "fin for pv = $pv"
-    return 1   # false
+
+    if [ ${#need_resizing[@]} -gt 0 ];then
+        echo ${need_resizing[@]}
+	return 0
+    else
+	return 1
+    fi
 
 }
 
@@ -140,9 +150,9 @@ if [ "$(echo "$disk_usage > $DISK_USAGE_LIMIT" | bc )" -eq 1 ]; then
 COMMENT
         #get volume groupe Free Size to extend LV
 	echo "============= get volume groupe Free Size to extend LV ==========="
-	V_NAME=$(vgs --noheadings 2> /dev/null | awk -F " " '{ print $1 }' )
-        V_FREE=$(vgs --noheadings 2> /dev/null | awk -F " " '{ print $7 }'| sed  's/[<g]//g' )
-	V_SIZE=$(vgs --noheadings 2> /dev/null | awk -F " " '{ print $6 }'| sed  's/[<g]//g'  ) 
+	V_NAME=$(vgs --noheadings 2> /dev/null | awk -F " " 'NR == 1 { print $1 }' )
+        V_FREE=$(vgs --noheadings 2> /dev/null | awk -F " " 'NR == 1 { print $7 }'| sed  's/[<g]//g' )
+	V_SIZE=$(vgs --noheadings 2> /dev/null | awk -F " " 'NR == 1 { print $6 }'| sed  's/[<g]//g'  ) 
 	echo
 	echo "Volume group Name: $V_NAME"
 	echo "Volume group Total Size: $V_SIZE"
@@ -169,28 +179,26 @@ COMMENT
 	if [[ $(echo "$V_FREE <= 15" | bc) -eq 1  ]];then
 		echo "Volume $V_NAME don't have Free Space"
 		
-		readarray -t PV_ATTACHED_ON_VG < <(pvs --noheadings -o pv_name,vg_name 2> /dev/null |
-                                     awk -F " "  -v vg="$V_NAME" '$2 == vg { print $1 }')
-		echo "PV_ATTACHED_ON_VG ${PV_ATTACHED_ON_VG[@]}"
-		: <<'COMMENT'
-		#get parent of partion if pv is attached on Partition
-		for i in "${!PV_ATTACHED_ON_VG[@]}";do
-			[[ $(lsblk -pnd -o TYPE ${PV_ATTACHED_ON_VG[$i]} | head -n1) == "part" ]] &&
-				PV_ATTACHED_ON_VG[$i]="/dev/$(lsblk -dn -o pkname ${PV_ATTACHED_ON_VG[$i]})"
-		done
-		echo "PV_ATTACHED_ON_VG after check parent of part ${PV_ATTACHED_ON_VG[@]}"
-COMMENT
-
 		# check If we  have a Free physical Volume (PV) to extend the Volume Group
-		readarray -t UNEXTENDED_PVS < <(pvs --noheadings -o pv_name,vg_name 2> /dev/null |
-				     awk -F " " '$2 == "" { print $1 }')
-
+		readarray -t UNEXTENDED_PVS < <(pvs --noheadings -o pv_name,vg_name 2> /dev/null |awk -F " " '$2=="" { print $1 }')
 		echo "PV Free:  ${UNEXTENDED_PVS[@]}"
+                
+                readarray -t DEVICES < <(lsblk -npr -o NAME,MOUNTPOINT | awk '$2=="" { print $1 }')
+                echo ${DEVICES[@]}
 		
+		readarray -t PV_ATTACHED_ON_VG < <(pvs --noheadings -o pv_name 2> /dev/null | awk -F " " '{ print $1 }')
+		echo "PV_ATTACHED_ON_VG ${PV_ATTACHED_ON_VG[@]}"
+                
+	        readarray -t need_toBe_resize < <(needs_pvresize "$V_NAME" "${PV_ATTACHED_ON_VG[@]}")	
+		other_pvs=()
 		free_size=()
-		# if we have more than one PV with free space , 
-		# then we will take the pv with the biggest to extend the VG
+		
+		# check if we dont have unused Pvs. If so then extend VG on this Pv
+                # if we have more than one PVs with free space , 
+		# then we will take the pv with the biggest size to extend the VG
 		if [[ ${#UNEXTENDED_PVS[@]} -gt  0 ]];then
+			echo
+			echo "check if we dont have unused Pvs. If so then extend VG on this Pv"
 			for pv in ${UNEXTENDED_PVS[@]};do
 				free_size+=($(pvs --noheadings -o pv_free $pv 2> /dev/null | sed 's/[<>]//g'))
 			done
@@ -204,48 +212,73 @@ COMMENT
 			# extend the VG with the PV with the biggest size
 			vgextend $V_NAME ${pv_big_size[0]}	
 
-			# extend LV
-		   
-			# resize FS on LV
-			#if  ;then
-			
-		        #fi
-		
-		elif needs_pvresize; then
-                        echo "Some PVs need resize → running pvresize"
-		
-		else
-	               echo "All Pvs are already extended"
-		       #Check if we have unmount and unsigned disk Device 
-		       echo "Get all unmounted Devices on the System"
-		       readarray -t DEVICES < <(lsblk -npr -o NAME,MOUNTPOINT | awk '$2=="" { print $1 }')
-		       echo ${DEVICES[@]}
-		    
-		       EMPTY_DISK_DEViCES=()
-		       # check if a signature on Devices exists
-		       for dev in ${DEVICES[@]};do
-		            if [ $(blkid ${dev} | wc -l ) -lt 1 ];then   
-		 	         echo "@@ info >>> disk $dev will be used to create PV"
-			         EMPTY_DISK_DEViCES+=("$dev") 
+			# extend LV   
+			#lvextend -l +100%FREE -r "dev/$V_NAME/$L_NAME"
+		elif (( ${#need_toBe_resize[@]} > 0 )); then
+                        echo "to be resize: ${need_toBe_resize[@]}"
+
+                       for pv in "${need_toBe_resize[@]}"; do
+                           echo "→ pvresize $pv"
+                           #pvresize "$pv"
+                       done
+                : << 'COMMENT'
+		elif needs_pvresize "$V_NAME" "${PV_ATTACHED_ON_VG[@]}"; then
+			readarray -t need_toBe_resize < <(needs_pvresize "$V_NAME" "${PV_ATTACHED_ON_VG[@]}")
+			echo "to be resize: ${need_toBe_resize[@]}"
+			echo "pvresize disk "
+		elif [ ${#DEVICES[@]} -gt 0 ]; then
+			echo
+		        echo "Get all unmounted Devices on the System and check if a Signature on Devices exists"
+		        EMPTY_DISK_DEViCES=()
+	                # check if a signature on Devices exists
+	                for dev in ${DEVICES[@]};do
+		               if [ $(blkid ${dev} | wc -l ) -lt 1 ];then   
+				   echo
+		 	           echo "@@ info:  No Signature detectet on $dev. This can be used to create PV"
+			           EMPTY_DISK_DEViCES+=("$dev") 
 			       
-			         # create a new PV
-			         echo "PV will be created with the first match ${dev} ..."
-			         pvcreate $dev
-			         echo "pv was succefull created"
-				 # extend the VG with the created PV 
-                                 vgextend $V_NAME ${dev}
-          
-			         break
-		           else
-		                 echo "Warning: Disk $dev is not empty. It will be remove from empty disk devices set"
-			         #unset $dev $DEVICES
-		           fi		
+			           # create a new PV
+			           pvcreate $dev
+			           echo "pv with $dev was succefull created"
+				   # extend the VG with the created PV 
+                                   vgextend $V_NAME ${dev}
+          			   echo "$V_NAME wassuccessfully extend with $dev "
+
+			           break
+		               else
+		                   echo "$dev  is alreaddy in use. if you want to destroy them use the command > wipefs -a $dev"
+		               fi		
+		           #[[ ${#EMPTY_DISK_DEViCES[@]} == 0 ]] && \
+		           #echo "Alert !!! : you have to Add a physical device to extend your disk Space"
+		#else 
+			       	   
+			       #other_pvs=()
+			       echo "$pv is an another Pv other than $V_NAME"
+	                       vg=$(pvs -o vg_name --noheadings "$pv")
+			       other_pvs+=("$pv $vg")
+                               echo ""
+
+
+                       done
+ 
+		       echo "other pvs ${other_pvs[@]}"
+	               
+		       for i in ${!other_pvs[@]};do
+			  pv=$(echo ${other_pvs[$i]} | awk '{ print $1 }')
+			  vg=$(echo ${other_pvs[$i]} | awk '{ print $2 }')
+                          vgfree_bytes=$(vgs --noheadings --nosuffix -o vg_free --units b $vg)
+			  vgsize_bytes=$(vgs --noheadings --nosuffix -o vg_size --units b $vg)
+                          vgfree_percent=$(awk "BEGIN { printf \"%.1f\", ($vgfree_bytes/$vgsize_bytes)*100 }")
+                          echo "pv:$pv <--> vg:$vg <--> vgfree:$vgfree_bytes <--> vgfree_percent:$vgfree_percent%"
+                          if [ "$(echo "$vgfree_percent > 75" | bc)" -eq 1 ]; then
+				  echo "size bigger than 75%"
+			  fi
 		       done
-		       [[ ${#EMPTY_DISK_DEViCES[@]} == 0 ]] && \
-		       echo "Alert !!! : you have to Add a physical device to extend your disk Space"
-		       #TO DO
-		       # do a backup if 
-	        fi
+		fi  
+COMMENT
+        else
+		echo "fin"
+        fi
 	else
 		# Extend Lv of 100%free space
 		echo
@@ -260,3 +293,4 @@ COMMENT
 	#Todo extend to 10% of VG
 	#lvextend -L +1K -r  /dev/${V_NAME}/${L_NAME} 2> /dev/null
 fi
+
