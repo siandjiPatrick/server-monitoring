@@ -1,34 +1,23 @@
 #!/bin/bash
 
+EMAIL_CONFIG_FILE="$(dirname "$0")/config/email_template.conf"
+
+if [[ -f "$EMAIL_CONFIG_FILE" ]]; then
+    source "$EMAIL_CONFIG_FILE"
+else
+    echo "$(date +%Y-%m-%d-%H:%M:%S) - Error: email_template.conf not found"
+    exit 1
+fi
+
 send_email(){
 
-local sender_name="${DEFAULT_SENDER_NAME:-DevOps-Team}"
-local sender_email="${DEFAULT_SENDER_EMAIL:-devops-team@gmail.com}"
-local recipient="${DEFAULT_RECIPIENT:-siandjipatrick@yahoo.fr}"
-local subject="${DEFAULT_SUBJECT:-Patrickstyl - Homelab Monitoring}"
-local email_version="${DEFAULT_EMAIL_VERSION:-1.0}"
-local report_filename="${DEFAULT_REPORT_FILENAME:-report.txt}"
-local email_template="${DEFAULT_EMAIL_TEMPLATE:-$(cat <<EOF
-
-<html>
-  <body>
-    <h2>THis IS AN EMAIL TEMPLATE</h2>
-    <p style="color:green;"><b>Status OK</b></p>
-    <p>Hi Devops-Team,</p>	
-    <ul>
-      <li>Disk Partition Name : /dev/sda </li>
-      <li>Device Typ : Disk </li>
-      <li>Mount Point : root(/)</li>
-      <li>Disk Filesystem typ : LVM </li>
-      <li>Disk Usage on Mount Point : 25%</li>
-    </ul>
-    <a href="https://proxmox-prod.siandji.com">Click here for more Infos!</a><br>
-    <p>Cordialement,<br>Team</p>
-  </body>
-</html>
-
-EOF
-)}"
+local sender_name="${SENDER_NAME:-"$DEFAULT_SENDER_NAME"}"
+local sender_email="${SENDER_EMAIL:-"$DEFAULT_SENDER_EMAIL"}"
+local recipient="${RECIPIENT:-"$DEFAULT_RECIPIENT"}"
+local subject="${SUBJECT:-"$DEFAULT_SUBJECT"}"
+local email_version="${EMAIL_VERSION:-"$DEFAULT_EMAIL_VERSION"}"
+local report_filename="${REPORT_FILENAME:-"$DEFAULT_REPORT_FILENAME"}"
+local email_template="${EMAIL_BODY:-"$DEFAULT_EMAIL_BODY"}"
 
 sendmail -t <<EOF
 From: $sender_name <$sender_email>

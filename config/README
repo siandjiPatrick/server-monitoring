@@ -252,3 +252,15 @@ Tu as maintenant :
 ✅ gestion updates safe
 
 👉 C’est exactement le modèle utilisé en entreprise.
+prerequis
+sudo dnf install rpm-build
+which rpmbuild
+Initialiser l environnement RPM \n rpmdev-setuptree
+ tree rpmbuild
+rpmbuild
+├── BUILD
+├── RPMS
+├── SOURCES
+├── SPECS
+└── SRPMS
+

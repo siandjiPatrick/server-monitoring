@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 #set -euo pipefail
 
@@ -190,9 +190,9 @@ main(){
                         case $3 in
                             "")
                                 show_message "Send notification via email"
-				DEFAULT_RECIPIENT="siandjipatrick@yahoo.fr"
-				DEFAULT_SUBJECT="Patrickstyl - Homelab Monitoring"
-				send_email
+				                RECIPIENT="siandjipatrick@yahoo.fr"
+                                #SUBJECT="test-subject"
+                                send_email
                                 ;;
                             --to)
                                 show_message "Recipient email"
