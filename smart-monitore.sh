@@ -4,6 +4,7 @@
 
 USAGE_FILE="$(dirname "$0")/usage.sh"
 UTILS_FILE="$(dirname "$0")/utils.sh"
+NOTIFY_EMAIL_FILE="$(dirname "$0")/notify/email.sh"
 
 if [[ -f "$USAGE_FILE" ]]; then
     source "$USAGE_FILE"
@@ -18,6 +19,14 @@ else
     echo "Error: usage.sh not found"
     exit 1
 fi
+
+if [[ -f "$NOTIFY_EMAIL_FILE" ]]; then
+    source "$NOTIFY_EMAIL_FILE"
+else
+    echo "Error: usage.sh not found"
+    exit 1
+fi
+
 
 
 
@@ -176,6 +185,27 @@ main(){
                     ""|--help)
                         show_usage_notify
                         exit 0
+                        ;;
+                    email)
+                        case $3 in
+                            "")
+                                show_message "Send notification via email"
+				DEFAULT_RECIPIENT="siandjipatrick@yahoo.fr"
+				DEFAULT_SUBJECT="Patrickstyl - Homelab Monitoring"
+				send_email
+                                ;;
+                            --to)
+                                show_message "Recipient email"
+                                shift
+                                ;;
+                            --subject)
+                                show_message "Email subject"
+                                shift
+                                ;;
+                            *)
+                                show_error_message "Error: command not Found! please check > $0 $1 --help "
+                                ;;
+                        esac
                         ;;
                 *)
                     show_error_message "Error: command not Found! please check > $0 $1 --help "

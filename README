@@ -1,0 +1,254 @@
+🧠 🟢 1. Architecture finale (vision globale)
+
+Après installation, tu auras :
+
+/usr/local/bin/mon-script          → binaire
+/etc/mon-script/config.conf        → config
+/var/log/mon-script/app.log        → logs
+/etc/systemd/system/mon-script.service → service
+un user système :
+mon-script (non-login)
+🧾 🟢 2. Le script (production)
+
+👉 /usr/local/bin/mon-script
+
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+CONFIG_FILE="/etc/mon-script/config.conf"
+LOG_FILE="/var/log/mon-script/app.log"
+
+# Charger la config
+if [[ -f "$CONFIG_FILE" ]]; then
+    source "$CONFIG_FILE"
+else
+    echo "Config manquante" >&2
+    exit 1
+fi
+
+log() {
+    echo "$(date '+%F %T') - $1" | tee -a "$LOG_FILE"
+}
+
+log "Service démarré"
+log "Message config: ${MESSAGE:-default}"
+
+# Boucle service
+while true; do
+    log "Heartbeat..."
+    sleep 10
+done
+⚙️ 🟢 3. Configuration
+
+👉 /etc/mon-script/config.conf
+
+MESSAGE="Hello enterprise 🚀"
+
+👉 C’est un fichier Bash-compatible → utilisé avec source
+
+📜 🟢 4. Service systemd
+
+👉 /usr/lib/systemd/system/mon-script.service
+
+[Unit]
+Description=Mon Script Enterprise Service
+After=network.target
+
+[Service]
+Type=simple
+User=mon-script
+Group=mon-script
+ExecStart=/usr/local/bin/mon-script
+Restart=always
+RestartSec=5
+
+# Sécurité
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
+
+👉 Sécurité intégrée :
+
+pas de root
+filesystem protégé
+sandbox systemd
+📦 🟢 5. RPM SPEC COMPLET (enterprise)
+Name:           mon-script
+Version:        1.0
+Release:        1%{?dist}
+Summary:        Enterprise mon script service
+
+License:        MIT
+BuildArch:      noarch
+
+Requires:       bash
+Requires:       systemd
+
+%description
+Service enterprise avec config, logs, user système
+
+# =========================
+# PREP
+# =========================
+%prep
+echo "PREP"
+
+# =========================
+# BUILD
+# =========================
+%build
+echo "BUILD"
+
+# =========================
+# INSTALL
+# =========================
+%install
+
+rm -rf %{buildroot}
+
+# Dossiers
+mkdir -p %{buildroot}/usr/local/bin
+mkdir -p %{buildroot}/etc/mon-script
+mkdir -p %{buildroot}/var/log/mon-script
+mkdir -p %{buildroot}/usr/lib/systemd/system
+
+# Fichiers
+cp %{_sourcedir}/mon-script.sh %{buildroot}/usr/local/bin/mon-script
+cp %{_sourcedir}/config.conf %{buildroot}/etc/mon-script/
+cp %{_sourcedir}/mon-script.service %{buildroot}/usr/lib/systemd/system/
+
+chmod +x %{buildroot}/usr/local/bin/mon-script
+
+# =========================
+# PREINSTALL
+# =========================
+%pre
+
+# Créer user système si absent
+getent passwd mon-script >/dev/null || \
+useradd --system --no-create-home --shell /sbin/nologin mon-script
+
+# =========================
+# POST INSTALL
+# =========================
+%post
+
+# Reload systemd
+systemctl daemon-reload
+
+# Enable service
+systemctl enable mon-script.service
+
+# Créer log dir avec permissions
+mkdir -p /var/log/mon-script
+chown mon-script:mon-script /var/log/mon-script
+
+# =========================
+# PRE UNINSTALL
+# =========================
+%preun
+
+systemctl stop mon-script.service || true
+systemctl disable mon-script.service || true
+
+# =========================
+# FILES
+# =========================
+%files
+/usr/local/bin/mon-script
+%config(noreplace) /etc/mon-script/config.conf
+/usr/lib/systemd/system/mon-script.service
+/var/log/mon-script
+
+# =========================
+# CHANGES
+# =========================
+%changelog
+* Tue Apr 07 2026 Toi
+- Initial enterprise version
+🔐 🟢 6. Concepts importants expliqués
+🧩 %pre
+
+👉 exécuté AVANT installation
+
+Utilisé pour :
+
+créer users
+préparer système
+useradd --system mon-script
+🧩 %post
+
+👉 exécuté APRÈS installation
+
+Utilisé pour :
+
+activer service
+recharger systemd
+fixer permissions
+systemctl enable mon-script
+🧩 %config(noreplace)
+
+👉 très important en entreprise
+
+%config(noreplace) /etc/mon-script/config.conf
+
+👉 signifie :
+
+si l’utilisateur modifie le fichier
+RPM ne l’écrase pas lors des updates
+🧠 🟢 7. Comment tout est relié
+
+👉 Le script :
+
+source /etc/mon-script/config.conf
+
+👉 donc il lit :
+
+variables dynamiques
+paramètres runtime
+
+👉 Les logs :
+
+/var/log/mon-script/app.log
+
+👉 écrits via :
+
+tee -a "$LOG_FILE"
+
+👉 systemd :
+
+lance le script
+gère restart
+gère sécurité
+
+👉 RPM :
+
+installe fichiers
+crée user
+configure service
+protège config
+🧪 🟢 8. Installation
+sudo dnf install mon-script-1.0-1.noarch.rpm
+▶️ Démarrage
+sudo systemctl start mon-script
+sudo systemctl status mon-script
+📜 Logs
+tail -f /var/log/mon-script/app.log
+🔥 Ce que tu viens de construire
+
+Tu as maintenant :
+
+✅ packaging RPM
+✅ user système sécurisé
+✅ service systemd
+✅ config externalisée
+✅ logs persistants
+✅ scripts lifecycle (%pre, %post)
+✅ gestion updates safe
+
+👉 C’est exactement le modèle utilisé en entreprise.

@@ -1,0 +1,27 @@
+#### if sendmail is not install show the command to install and config datei.
+#
+# sudo dnf install postfix s-nail cyrus-sasl cyrus-sasl-plain -y
+#
+# sudo nano /etc/postfix/main.cf
+#
+##smtp_tls_security_level = may
+#meta_directory = /etc/postfix
+#shlib_directory = /usr/lib64/postfix
+#
+#relayhost = [smtp.gmail.com]:587
+#
+#smtp_sasl_auth_enable = yes
+#smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+#smtp_sasl_security_options = noanonymous
+#
+#smtp_use_tls = yes
+#smtp_tls_security_level = encrypt
+#
+#sudo nano /etc/postfix/sasl_passwd
+#[smtp.gmail.com]:587 testmail@gmail.com:abcd efgh ijkl mnop
+#sudo postmap /etc/postfix/sasl_passwd
+#sudo chmod 600 /etc/postfix/sasl_passwd
+#
+#sudo systemctl enable postfix
+#sudo systemctl start postfix
+
