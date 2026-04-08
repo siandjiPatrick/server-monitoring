@@ -1,7 +1,20 @@
 #!/bin/bash
 
-EMAIL_CONFIG_FILE="$(dirname "$0")/config/email_template.conf"
+EMAIL_CONFIG_FILE="$(dirname "$0")/../config/email_template.conf"
+#SCRIPT_PATH="$(readlink -f "$0")"
+#SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 
+# Détection du mode
+#if [ -d /usr/lib/siandjiservmon ]; then
+    # Mode package RPM (production)
+#    BASE_DIR="/usr/lib/siandjiservmon"
+#else
+    # Mode développement (repo local)
+#    BASE_DIR="$SCRIPT_DIR/.."
+#fi
+
+#EMAIL_CONFIG_FILE="$BASE_DIR/config/email_template.conf"
+#echo "$EMAIL_CONFIG_FILE"
 if [[ -f "$EMAIL_CONFIG_FILE" ]]; then
     source "$EMAIL_CONFIG_FILE"
 else

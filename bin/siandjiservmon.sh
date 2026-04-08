@@ -2,9 +2,27 @@
 
 #set -euo pipefail
 
-USAGE_FILE="$(dirname "$0")/usage.sh"
-UTILS_FILE="$(dirname "$0")/utils.sh"
-NOTIFY_EMAIL_FILE="$(dirname "$0")/notify/email.sh"
+# Chemin réel du script exécuté
+SCRIPT_PATH="$(readlink -f "$0")"
+SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+
+# Détection du mode
+if [ -d /usr/lib/siandjiservmon ]; then
+    # Mode package RPM (production)
+    BASE_DIR="/usr/lib/siandjiservmon"
+else
+    # Mode développement (repo local)
+    BASE_DIR="$SCRIPT_DIR/.."
+fi
+echo "$BASE_DIR"
+# Chemins des modules
+USAGE_FILE="$BASE_DIR/lib/usage.sh"
+UTILS_FILE="$BASE_DIR/lib/utils.sh"
+NOTIFY_EMAIL_FILE="$BASE_DIR/notify/email.sh"
+
+#echo $USAGE_FILE
+#echo $UTILS_FILE
+#echo $NOTIFY_EMAIL_FILE
 
 if [[ -f "$USAGE_FILE" ]]; then
     source "$USAGE_FILE"
@@ -23,12 +41,9 @@ fi
 if [[ -f "$NOTIFY_EMAIL_FILE" ]]; then
     source "$NOTIFY_EMAIL_FILE"
 else
-    echo "Error: usage.sh not found"
+    echo "Error: email.sh not found"
     exit 1
 fi
-
-
-
 
 main(){
 
