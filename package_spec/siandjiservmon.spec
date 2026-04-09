@@ -1,5 +1,5 @@
 Name:           siandjiservmon
-Version:        2.0
+Version:        1.0
 Release:        1%{?dist}
 Summary:        Smart Monitoring Tool
 
@@ -18,7 +18,7 @@ Requires:       s-nail
 Requires:       cyrus-sasl 
 Requires:       cyrus-sasl-plain
 
-Source0:        siandjiservmon-2.0.tar.gz
+Source0:        siandjiservmon-1.0.tar.gz
 
 %description
 Smart monitoring tool with modular scripts made by Patrick.

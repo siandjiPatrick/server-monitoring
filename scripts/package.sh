@@ -14,7 +14,7 @@ echo "project directory : $PROJECT_DIR"
 PACKAGE_DIR="$(readlink -m "${PROJECT_DIR}/../my-Pacakges")"
 
 PACKAGE_NAME="siandjiservmon"
-PACKAGE_VERSION="2.0"
+PACKAGE_VERSION="1.0"
 PACKAGE_TAR_FILE="${PACKAGE_NAME}-${PACKAGE_VERSION}.tar.gz"
 
 
@@ -33,8 +33,8 @@ fi
 if [[ -e "${PACKAGE_DIR}/${PACKAGE_TAR_FILE}" ]]; then
     
     mv "${PACKAGE_DIR}/${PACKAGE_TAR_FILE}" "${PACKAGE_DIR}/${PACKAGE_FORMAT}-${PACKAGE_TAR_FILE}"
-fi
 
+fi
 
 
 # create rpmbuild tree
@@ -43,10 +43,25 @@ if [[ ! -e "${PACKAGE_DIR}/rpmbuild" ]]; then
     mv ~/rpmbuild "$PACKAGE_DIR"
 fi
 
+
+echo
+echo "==============================================================="
+echo "Archive and compress project directory to my-Packages/rpmbuild/SOURCES"
+echo "==============================================================="
+echo
+
+
 # Archive and compress project directory to my-Packages/rpmbuild/SOURCES
 tar -czf "${PACKAGE_DIR}/rpmbuild/SOURCES/${PACKAGE_TAR_FILE}" \
     -C "${PROJECT_DIR}/.." \
     "$(basename "${PROJECT_DIR}")"
+
+
+echo
+echo "==============================================================="
+echo "cp package spec file into rpmbuild/SPECS"
+echo "==============================================================="
+echo
 
 # cp package spec file to rpmbuild/SPECS
 cp -p "${PROJECT_DIR}/package_spec/siandjiservmon.spec" "${PACKAGE_DIR}/rpmbuild/SPECS/"
@@ -54,10 +69,41 @@ cp -p "${PROJECT_DIR}/package_spec/siandjiservmon.spec" "${PACKAGE_DIR}/rpmbuild
 tree "${PACKAGE_DIR}/rpmbuild"
 
 # create rpm package
-echo "rpmbuild ${PACKAGE_DIR}"
+#echo "rpmbuild ${PACKAGE_DIR}"
+
+echo
+echo "==============================================================="
+echo "Create the Package $PACKAGE_NAME"
+echo "==============================================================="
+echo
 
 rpmbuild --define "_topdir ${PACKAGE_DIR}/rpmbuild" \
         -bb "${PACKAGE_DIR}/rpmbuild/SPECS/siandjiservmon.spec" -v
 
+
+echo
+echo "==============================================================="
+echo "Get Informations About the Package"
+echo "==============================================================="
+echo
 # show package info
 rpm -qpi "${PACKAGE_DIR}/rpmbuild/RPMS/noarch/*"
+
+echo
+echo "==============================================================="
+echo "list all Package Files"
+echo "==============================================================="
+echo
+
+# list Package file
+rpm -qpl "${PACKAGE_DIR}/rpmbuild/RPMS/noarch/*"
+
+
+echo
+echo "==============================================================="
+echo "Install the Package $PACKAGE_NAME"
+echo "==============================================================="
+echo
+
+# list Package file
+sudo rpm -iv "${PACKAGE_DIR}/rpmbuild/RPMS/noarch/*"
