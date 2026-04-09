@@ -1,29 +1,46 @@
 #!/usr/bin/env bash
 
-#set -euo pipefail
+set -euo pipefail
 
-# Chemin réel du script exécuté
 SCRIPT_PATH="$(readlink -f "$0")"
 SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+readonly PACKAGE_NAME=siandjiservmon
 
-# Détection du mode
-if [ -d /usr/lib/siandjiservmon ]; then
-    # Mode package RPM (production)
-    BASE_DIR="/usr/lib/siandjiservmon"
+######## Detect if the script is run in  production or Dev Mode
+if [[ -d "/etc/${PACKAGE_NAME}" && -d "/usr/lib/${PACKAGE_NAME}" ]]; then
+    ##### Mode package RPM (production)
+    echo "** Production Mode aktiv !"
+    BASE_DIR="/usr/lib/${PACKAGE_NAME}"
+    config_file="/etc/${PACKAGE_NAME}/${PACKAGE_NAME}.log"
 else
-    # Mode développement (repo local)
+    ##### Mode developpement (repo local)
+    echo "** Dev Mode aktiv !"
     BASE_DIR="$SCRIPT_DIR/.."
+    config_file=$(readlink -m "${SCRIPT_DIR}/../config/${PACKAGE_NAME}.log" )
 fi
-echo "$BASE_DIR"
-# Chemins des modules
-USAGE_FILE="$BASE_DIR/lib/usage.sh"
-UTILS_FILE="$BASE_DIR/lib/utils.sh"
-NOTIFY_EMAIL_FILE="$BASE_DIR/notify/email.sh"
 
+########## Source and Print config File
+source $config_file
+echo "Config file : $config_file"
+
+if [[ ! -e "$LOG_DIR" ]]; then
+        mkdir -p $LOG_DIR
+fi
+
+######### print Base Directory
+#echo "$BASE_DIR"
+
+######### Set Libraries Paths
+USAGE_FILE="${BASE_DIR}/lib/usage.sh"
+UTILS_FILE="${BASE_DIR}/lib/utils.sh"
+NOTIFY_EMAIL_FILE="${BASE_DIR}/notify/email.sh"
+
+######### print Libraries Files
 #echo $USAGE_FILE
 #echo $UTILS_FILE
 #echo $NOTIFY_EMAIL_FILE
 
+########## Check if Libraries Files Exists
 if [[ -f "$USAGE_FILE" ]]; then
     source "$USAGE_FILE"
 else
@@ -34,7 +51,7 @@ fi
 if [[ -f "$UTILS_FILE" ]]; then
     source "$UTILS_FILE"
 else
-    echo "Error: usage.sh not found"
+    echo "Error: utils.sh not found"
     exit 1
 fi
 
@@ -123,6 +140,8 @@ main(){
                         esac
                         ;;
                     *)
+			write_log_message "${LOG_FORMAT}-Disk-Error->command not Found! \
+			                	please check > $0 $1 --help" "$LOG_FILE"
                         show_error_message "Error: command not Found! please check > $0 $1 --help "
                         ;;
                 esac
@@ -156,6 +175,8 @@ main(){
                         ;;
                            
                     *)
+			write_log_message "${LOG_FORMAT}-CPU-Error->command not Found! \
+			        	please check > $0 $1 --help" "$LOG_FILE"
                         show_error_message "Error: command not Found! please check > $0 $1 --help "
                         ;;
                 esac
@@ -168,6 +189,8 @@ main(){
                         exit 0
                         ;;
                 *)
+	            write_log_message "${LOG_FORMAT}-Memory-Error->command not Found! \ 
+			    please check > $0 $1 --help" "$LOG_FILE"
                     show_error_message "Error: command not Found! please check > $0 $1 --help "
                     ;;
                 esac
@@ -180,6 +203,8 @@ main(){
                         exit 0
                         ;;
                 *)
+		   write_log_message "${LOG_FORMAT}-report-Error->command not Found! \
+			   please check > $0 $1 --help" "$LOG_FILE"
                     show_error_message "Error: command not Found! please check > $0 $1 --help "
                     ;;
                 esac
@@ -191,6 +216,8 @@ main(){
                         exit 0
                         ;;
                 *)
+		    write_log_message "${LOG_FORMAT}-backup-Error->command not Found! \
+			    please check > $0 $1 --help" "$LOG_FILE"
                     show_error_message "Error: command not Found! please check > $0 $1 --help "
                     ;;
                 esac
@@ -205,9 +232,8 @@ main(){
                         case $3 in
                             "")
                                 show_message "Send notification via email"
-				                RECIPIENT="siandjipatrick@yahoo.fr"
-                                #SUBJECT="test-subject"
                                 send_email
+				write_log_message "${LOG_FORMAT}-email-error->Email sending was successfull !!" "$LOG_FILE"
                                 ;;
                             --to)
                                 show_message "Recipient email"
@@ -218,6 +244,8 @@ main(){
                                 shift
                                 ;;
                             *)
+				write_log_message "${LOG_FORMAT}-email-Error->command not Found! \
+				       	please check > $0 $1 --help" "$LOG_FILE"
                                 show_error_message "Error: command not Found! please check > $0 $1 --help "
                                 ;;
                         esac

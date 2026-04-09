@@ -1,5 +1,13 @@
 #!/bin/bash
-
+write_log_message(){
+   local error_message="$1"
+   local log_file="$2"
+    if [ -z "$error_message" ]; then
+       echo "Error: Something was wrong. Please Try again" >> $log_file
+    else
+       echo "$error_message" >> $log_file
+    fi
+}
 show_message(){
     local message="$1"
     if [ -z "$message" ]; then
