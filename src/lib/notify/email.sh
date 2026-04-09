@@ -1,6 +1,6 @@
 #!/bin/bash
 
-EMAIL_CONFIG_FILE="$(dirname "$0")/../config/email_template.conf"
+EMAIL_CONFIG_FILE="$(readlink -m $(dirname "$0")/../config/email_template.conf)"
 #SCRIPT_PATH="$(readlink -f "$0")"
 #SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
 

@@ -11,12 +11,17 @@ if [[ -d "/etc/${PACKAGE_NAME}" && -d "/usr/lib/${PACKAGE_NAME}" ]]; then
     ##### Mode package RPM (production)
     echo "** Production Mode aktiv !"
     BASE_DIR="/usr/lib/${PACKAGE_NAME}"
-    config_file="/etc/${PACKAGE_NAME}/${PACKAGE_NAME}.log"
+    if [[ -f "/etc/${PACKAGE_NAME}/${PACKAGE_NAME}.conf" ]]; then
+        config_file="/etc/${PACKAGE_NAME}/${PACKAGE_NAME}.conf"
+    else
+        echo "Error: ${PACKAGE_NAME}.conf not found !"
+    fi
 else
     ##### Mode developpement (repo local)
     echo "** Dev Mode aktiv !"
+    echo "Warning: /etc/${PACKAGE_NAME} oder /usr/lib/${PACKAGE_NAME} don't exist "
     BASE_DIR="$SCRIPT_DIR/.."
-    config_file=$(readlink -m "${SCRIPT_DIR}/../config/${PACKAGE_NAME}.log" )
+    config_file=$(readlink -m "${SCRIPT_DIR}/../config/${PACKAGE_NAME}.conf" )
 fi
 
 ########## Source and Print config File
@@ -31,14 +36,14 @@ fi
 #echo "$BASE_DIR"
 
 ######### Set Libraries Paths
-USAGE_FILE="${BASE_DIR}/lib/usage.sh"
-UTILS_FILE="${BASE_DIR}/lib/utils.sh"
-NOTIFY_EMAIL_FILE="${BASE_DIR}/notify/email.sh"
+USAGE_FILE="$(readlink -m ${BASE_DIR}/lib/usage.sh)"
+UTILS_FILE="$(readlink -m ${BASE_DIR}/lib/utils.sh)"
+NOTIFY_EMAIL_FILE="$(readlink -m ${BASE_DIR}/lib/notify/email.sh)"
 
 ######### print Libraries Files
-#echo $USAGE_FILE
-#echo $UTILS_FILE
-#echo $NOTIFY_EMAIL_FILE
+echo $USAGE_FILE
+echo $UTILS_FILE
+echo $NOTIFY_EMAIL_FILE
 
 ########## Check if Libraries Files Exists
 if [[ -f "$USAGE_FILE" ]]; then

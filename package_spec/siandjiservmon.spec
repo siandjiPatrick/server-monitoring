@@ -3,11 +3,17 @@ Version:        1.0
 Release:        1%{?dist}
 Summary:        Smart Monitoring Tool
 
+
 License:        MIT
+URL:            https://github.com/siandjiPatrick/server-monitoring/tree/develop
+Packager:       Patrick Siandji <patrick@example.com>
 BuildArch:      noarch
 
+BuildRequires:  bash
+BuildRequires:  systemd
+
 Requires:       bash
-Requires:	postfix 
+Requires:	      postfix 
 Requires:       s-nail 
 Requires:       cyrus-sasl 
 Requires:       cyrus-sasl-plain
@@ -21,12 +27,6 @@ Smart monitoring tool with modular scripts.
 %prep
 %setup -q -n server-monitoring
 
-
-# Rename systemd service file to match package expectation
-if [ -f systemd/siandjiservice.service ]; then
-    mv systemd/siandjiservice.service systemd/siandjiservmon.service
-fi
-
 # =====================
 %build
 # nothing to build
@@ -37,25 +37,28 @@ fi
 rm -rf %{buildroot}
 
 # Binary
-install -Dm755 bin/siandjiservmon.sh \
+install -Dm755 src/bin/siandjiservmon.sh \
   %{buildroot}/usr/local/bin/siandjiservmon
 
 # Libraries
 mkdir -p %{buildroot}/usr/lib/siandjiservmon
-cp -r lib %{buildroot}/usr/lib/siandjiservmon/
-cp -r manage %{buildroot}/usr/lib/siandjiservmon/
-cp -r notify %{buildroot}/usr/lib/siandjiservmon/
+cp -r src/lib %{buildroot}/usr/lib/siandjiservmon/
+cp -r src/lib/manage %{buildroot}/usr/lib/siandjiservmon/lib
+cp -r src/lib/notify %{buildroot}/usr/lib/siandjiservmon/lib
 
 # Config
 mkdir -p %{buildroot}/etc/siandjiservmon
-cp config/email.cf %{buildroot}/etc/siandjiservmon/
+cp config/postfix.conf.example %{buildroot}/etc/siandjiservmon/
 cp config/email_template.conf %{buildroot}/etc/siandjiservmon/
+cp config/siandjiservmon.conf %{buildroot}/etc/siandjiservmon/
 
 # Logs
 mkdir -p %{buildroot}/var/log/siandjiservmon
+chown patrick:patrick %{buildroot}/var/log/siandjiservmon
+chmod 770 %{buildroot}/var/log/siandjiservmon
 
 # systemd
-if [ -d systemd ]; then
+if [ -d src/systemd ]; then
   mkdir -p %{buildroot}/usr/lib/systemd/system
   cp systemd/* %{buildroot}/usr/lib/systemd/system/ || true
 fi
@@ -94,8 +97,9 @@ systemctl daemon-reload || true
 
 /usr/lib/siandjiservmon
 
-%config(noreplace) /etc/siandjiservmon/email.cf
+%config(noreplace) /etc/siandjiservmon/email.conf
 %config(noreplace) /etc/siandjiservmon/email_template.conf
+%config(noreplace) /etc/siandjiservmon/siandjiservmon.conf
 
 /var/log/siandjiservmon
 
@@ -103,5 +107,9 @@ systemctl daemon-reload || true
 
 # =====================
 %changelog
+* Thu Apr 9 2026 Patrick Siandji <siandjipatrick@yahoo.fr> - 1.0-1
+- renamed service 
+- add new config 
+
 * Tue Apr 07 2026 Patrick siandji
 - Initial package (improve)
