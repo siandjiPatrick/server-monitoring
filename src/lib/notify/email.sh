@@ -1,24 +1,20 @@
 #!/bin/bash
 
-EMAIL_CONFIG_FILE="$(readlink -m $(dirname "$0")/../config/email_template.conf)"
-#SCRIPT_PATH="$(readlink -f "$0")"
-#SCRIPT_DIR="$(dirname "$SCRIPT_PATH")"
+######## Detect if the script is run in  production or Dev Mode
+if [[ -d "/etc/${PACKAGE_NAME}" && -d "/usr/lib/${PACKAGE_NAME}" ]]; then
+    ##### Mode package RPM (production)
+    EMAIL_CONFIG_FILE="/etc/${PACKAGE_NAME}/email_template.conf"
+else
+    ##### Mode developpement (repo local)
+    EMAIL_CONFIG_FILE="$(readlink -m $(dirname "$0")/../config/email_template.conf)"
+fi
 
-# Détection du mode
-#if [ -d /usr/lib/siandjiservmon ]; then
-    # Mode package RPM (production)
-#    BASE_DIR="/usr/lib/siandjiservmon"
-#else
-    # Mode développement (repo local)
-#    BASE_DIR="$SCRIPT_DIR/.."
-#fi
+echo "Email Config File: ${EMAIL_CONFIG_FILE}"
 
-#EMAIL_CONFIG_FILE="$BASE_DIR/config/email_template.conf"
-#echo "$EMAIL_CONFIG_FILE"
 if [[ -f "$EMAIL_CONFIG_FILE" ]]; then
     source "$EMAIL_CONFIG_FILE"
 else
-    echo "$(date +%Y-%m-%d-%H:%M:%S) - Error: email_template.conf not found"
+    echo "** Error: email_template.conf not found"
     exit 1
 fi
 
