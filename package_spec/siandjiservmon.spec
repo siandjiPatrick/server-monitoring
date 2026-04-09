@@ -1,5 +1,5 @@
 Name:           siandjiservmon
-Version:        1.0
+Version:        2.0
 Release:        1%{?dist}
 Summary:        Smart Monitoring Tool
 
@@ -18,10 +18,10 @@ Requires:       s-nail
 Requires:       cyrus-sasl 
 Requires:       cyrus-sasl-plain
 
-Source0:        siandjiservmon-1.0.tar.gz
+Source0:        siandjiservmon-2.0.tar.gz
 
 %description
-Smart monitoring tool with modular scripts.
+Smart monitoring tool with modular scripts made by Patrick.
 
 # =====================
 %prep
@@ -48,9 +48,9 @@ cp -r src/lib/notify %{buildroot}/usr/lib/siandjiservmon/lib
 
 # Config
 mkdir -p %{buildroot}/etc/siandjiservmon
-cp config/postfix.conf.example %{buildroot}/etc/siandjiservmon/
-cp config/email_template.conf %{buildroot}/etc/siandjiservmon/
-cp config/siandjiservmon.conf %{buildroot}/etc/siandjiservmon/
+cp src/config/postfix.conf.example %{buildroot}/etc/siandjiservmon/
+cp src/config/email_template.conf %{buildroot}/etc/siandjiservmon/
+cp src/config/siandjiservmon.conf %{buildroot}/etc/siandjiservmon/
 
 # Logs
 mkdir -p %{buildroot}/var/log/siandjiservmon
@@ -60,7 +60,7 @@ chmod 770 %{buildroot}/var/log/siandjiservmon
 # systemd
 if [ -d src/systemd ]; then
   mkdir -p %{buildroot}/usr/lib/systemd/system
-  cp systemd/* %{buildroot}/usr/lib/systemd/system/ || true
+  cp -v src/systemd/*.service %{buildroot}/usr/lib/systemd/system/ || true
 fi
 
 # ======================
@@ -95,9 +95,19 @@ systemctl daemon-reload || true
 
 /usr/local/bin/siandjiservmon
 
-/usr/lib/siandjiservmon
+/usr/lib/siandjiservmon/lib/usage.sh
+/usr/lib/siandjiservmon/lib/utils.sh
 
-%config(noreplace) /etc/siandjiservmon/email.conf
+/usr/lib/siandjiservmon/lib/manage/disk/disk-usage.sh
+
+/usr/lib/siandjiservmon/lib/notify/email.sh
+/usr/lib/siandjiservmon/lib/notify/mail.attachement.sh
+/usr/lib/siandjiservmon/lib/notify/mail.example.sh
+/usr/lib/siandjiservmon/lib/notify/report.txt
+/usr/lib/siandjiservmon/lib/notify/send-monitoring-mail.sh
+/usr/lib/siandjiservmon/lib/notify/web.sh
+
+%config(noreplace) /etc/siandjiservmon/postfix.conf.example
 %config(noreplace) /etc/siandjiservmon/email_template.conf
 %config(noreplace) /etc/siandjiservmon/siandjiservmon.conf
 

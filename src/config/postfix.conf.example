@@ -1,3 +1,4 @@
+
 #### if sendmail is not install show the command to install and config datei.
 #
 # sudo dnf install postfix s-nail cyrus-sasl cyrus-sasl-plain -y

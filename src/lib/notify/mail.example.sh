@@ -1,3 +1,8 @@
+#!/usr/bin/env bash
+
+
+set -euo pipefail
+
 sendmail -t <<EOF
 From: Admin  <admin@gmail.com>
 To: asmitterand@yahoo.fr
