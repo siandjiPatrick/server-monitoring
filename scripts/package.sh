@@ -77,8 +77,10 @@ echo "Create the Package $PACKAGE_NAME"
 echo "==============================================================="
 echo
 
+# per default rpmbuild build package from ~/rpmbuild,
+# we have to indicate where our rpmbuild dir are 
 rpmbuild --define "_topdir ${PACKAGE_DIR}/rpmbuild" \
-        -bb "${PACKAGE_DIR}/rpmbuild/SPECS/siandjiservmon.spec" -v
+        -ba "${PACKAGE_DIR}/rpmbuild/SPECS/siandjiservmon.spec" -v
 
 
 echo
@@ -106,4 +108,4 @@ echo "==============================================================="
 echo
 
 # list Package file
-sudo rpm -iv "${PACKAGE_DIR}/rpmbuild/RPMS/noarch/*"
+#sudo rpm -ivh "${PACKAGE_DIR}/rpmbuild/RPMS/noarch/*"
