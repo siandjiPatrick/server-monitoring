@@ -29,12 +29,12 @@ help:
 ###################### BUILD #################################
 build:
 	@echo "Building project $(APP)..."
-	#@bash scripts/build.sh
+	@bash scripts/build-package.sh
 
 ###################### GENERATE RPM PACKAGE  #################
 package:
 	@echo "package project $(APP)..."
-	#@bash scripts/build.sh
+	@bash scripts/build-package.sh
 
 ####################### SIGN PACKAGE #########################
 sign-package:
@@ -43,11 +43,11 @@ sign-package:
 ####################### DEPLOY ###############################
 deploy-to-nexus:
 	@echo "deploy package to nexus repository..."
-
+	@bash scripts/deploy-package.sh --nexus
 ####################### DEPLOY TO WEBSERVER ##################
 deploy-to-webserver:
 	@echo "deploy package to httpd webserver..."
-
+	@bash scripts/deploy-package.sh --webserver
 ####################### TEST ##################################
 test:
 	@echo "Running tests..."
@@ -55,5 +55,6 @@ test:
 ####################### CLEAN #################################
 clean:
 	@echo "Cleaning project..."
+	@bash -c "rm -rf /var/www/repos/siandji/*"
 
 

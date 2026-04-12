@@ -11,7 +11,7 @@ PROJECT_DIR="$(readlink -m "${SCRIPT_DIR}/..")"
 echo "package script directory : $SCRIPT_DIR"
 echo "project directory : $PROJECT_DIR"
 
-PACKAGE_DIR="$(readlink -m "${PROJECT_DIR}/../my-Pacakges")"
+PACKAGE_DIR="$(readlink -m "${PROJECT_DIR}/../my-Packages")"
 
 PACKAGE_NAME="siandjiservmon"
 PACKAGE_VERSION="1.0"
@@ -107,5 +107,6 @@ echo "Install the Package $PACKAGE_NAME"
 echo "==============================================================="
 echo
 
-# list Package file
+# install Package 
+
 #sudo rpm -ivh "${PACKAGE_DIR}/rpmbuild/RPMS/noarch/*"
