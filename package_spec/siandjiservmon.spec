@@ -61,6 +61,7 @@ cp src/config/siandjiservmon.conf %{buildroot}/etc/siandjiservmon/
 
 # Logs
 install -d -m 0755 %{buildroot}/var/log/siandjiservmon
+touch %{buildroot}/var/log/siandjiservmon/siandjiservmon.log
 
 # systemd
 if [ -d src/systemd ]; then
@@ -108,6 +109,7 @@ getent passwd siandjiservmon >/dev/null || useradd -r -g siandjiservmon -d /var/
 
 
 %attr(755, siandjiservmon, siandjiservmon) /var/log/siandjiservmon
+%attr(664, siandjiservmon, siandjiservmon) /var/log/siandjiservmon/siandjiservmon.log
 %attr(755, siandjiservmon, siandjiservmon) /var/lib/siandjiservmon
 
 
