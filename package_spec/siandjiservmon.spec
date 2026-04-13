@@ -11,15 +11,16 @@ BuildArch:      noarch
 
 BuildRequires:  bash
 BuildRequires:  systemd
+BuildRequires:  systemd-rpm-macros
+
+%{?systemd_requires}
 
 Requires:       bash
 Requires:	postfix 
 Requires:       s-nail 
 Requires:       cyrus-sasl 
 Requires:       cyrus-sasl-plain
-requires:       gpg
-requires: 	curl
-requires:       rpm-sign
+Requires: 	curl
 
 Source0:        siandjiservmon-1.0.1.tar.gz
 
@@ -29,8 +30,7 @@ Smart monitoring tool with modular scripts made by Patrick.
 # =====================
 %prep
 %setup -q -n server-monitoring
-groupadd -r siandjiservmon || true
-useradd -r -d /var/lib/siandjiservmon -g siandjiservmon -s /sbin/nologin siandjiservmon || :
+
 
 # =====================
 %build
@@ -42,17 +42,16 @@ useradd -r -d /var/lib/siandjiservmon -g siandjiservmon -s /sbin/nologin siandji
 rm -rf %{buildroot}
 
 # siandjiservmon Data
-install -d %{buildroot}/var/lib/siandjiservmon
+install -d -m 0755 %{buildroot}/var/lib/siandjiservmon
 
 # Binary
-install -Dm755 src/bin/siandjiservmon.sh \
-  %{buildroot}/usr/local/bin/siandjiservmon
+install -Dm755 src/bin/siandjiservmon.sh %{buildroot}/usr/bin/siandjiservmon
 
 # Libraries
 mkdir -p %{buildroot}/usr/lib/siandjiservmon
-cp -r src/lib %{buildroot}/usr/lib/siandjiservmon/
-cp -r src/lib/manage %{buildroot}/usr/lib/siandjiservmon/lib
-cp -r src/lib/notify %{buildroot}/usr/lib/siandjiservmon/lib
+cp -a src/lib %{buildroot}/usr/lib/siandjiservmon/
+find %{buildroot}/usr/lib/siandjiservmon -type f -name "*.sh" -exec chmod 755 {} \;
+find %{buildroot}/usr/lib/siandjiservmon -type f ! -name "*.sh" -exec chmod 644 {} \;
 
 # Config
 mkdir -p %{buildroot}/etc/siandjiservmon
@@ -61,7 +60,7 @@ cp src/config/email_template.conf %{buildroot}/etc/siandjiservmon/
 cp src/config/siandjiservmon.conf %{buildroot}/etc/siandjiservmon/
 
 # Logs
-install -d %{buildroot}/var/log/siandjiservmon
+install -d -m 0755 %{buildroot}/var/log/siandjiservmon
 
 # systemd
 if [ -d src/systemd ]; then
@@ -69,56 +68,38 @@ if [ -d src/systemd ]; then
   cp -v src/systemd/*.service %{buildroot}/usr/lib/systemd/system/ || true
 fi
 
+# ====================
+%pre
+
+echo "create service user"
+getent group siandjiservmon >/dev/null || groupadd -r siandjiservmon
+getent passwd siandjiservmon >/dev/null || useradd -r -g siandjiservmon -d /var/lib/siandjiservmon -s /sbin/nologin siandjiservmon
+
 # ======================
 %post
-
-echo "Reloading systemd..."
-systemctl daemon-reload
-
-echo "Enabling smart-monitore service..."
-systemctl enable siandjiservmon.service
+%systemd_post siandjiservmon.service
 
 # =====================
 %preun
-
-if [ $1 -eq 0 ]; then
-    echo "Stopping service..."
-    systemctl stop siandjiservmon.service || true
-
-    echo "Disabling service..."
-    systemctl disable siandjiservmon.service || true
-fi
-
+%systemd_preun siandjiservmon.service 
 
 # =====================
 %postun
-
-echo "Reloading systemd..."
-systemctl daemon-reload || true
+%systemd_postun_with_restart siandjiservmon.service
 
 # =====================
 %files
 
 #set default permision
-%defattr(0644, root, root, 0755)
+#%defattr(0644, root, root, 0755)
 
 #%{_bindir}/siandjiservmon
-/usr/local/bin/siandjiservmon
+%attr(755, root , root ) /usr/bin/siandjiservmon
 
 #%{_libdir}/siandjiservmon/*
-/usr/lib/siandjiservmon/lib/usage.sh
-/usr/lib/siandjiservmon/lib/utils.sh
+/usr/lib/siandjiservmon/
 
-/usr/lib/siandjiservmon/lib/manage/disk/disk-usage.sh
-
-/usr/lib/siandjiservmon/lib/notify/email.sh
-/usr/lib/siandjiservmon/lib/notify/mail.attachement.sh
-/usr/lib/siandjiservmon/lib/notify/mail.example.sh
-/usr/lib/siandjiservmon/lib/notify/report.txt
-/usr/lib/siandjiservmon/lib/notify/send-monitoring-mail.sh
-/usr/lib/siandjiservmon/lib/notify/web.sh
-
-/usr/lib/systemd/system/siandjiservmon.service
+%attr(644, root, root) /usr/lib/systemd/system/siandjiservmon.service
 
 #%{_sysconfdir}/siandjiservmon/*
 %config(noreplace) /etc/siandjiservmon/postfix.conf.example
