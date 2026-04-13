@@ -24,9 +24,18 @@ else
     config_file=$(readlink -m "${SCRIPT_DIR}/../config/${PACKAGE_NAME}.conf" )
 fi
 
+
+if [[ -d "/var/lib/${PACKAGE_NAME}" ]]; then
+    ##### Mode package RPM (production)
+    DATA_DIR="/var/lib/${PACKAGE_NAME}"
+else
+    ##### Mode developpement (repo local)
+    DATA_DIR="$BASE_DIR/data"
+fi
+
 ########## Source and Print config File
 source $config_file
-echo "Config file : $config_file"
+#echo "Config file : $config_file"
 
 if [[ ! -e "$LOG_DIR" ]]; then
         mkdir -p $LOG_DIR
@@ -41,9 +50,9 @@ UTILS_FILE="$(readlink -m ${BASE_DIR}/lib/utils.sh)"
 NOTIFY_EMAIL_FILE="$(readlink -m ${BASE_DIR}/lib/notify/email.sh)"
 
 ######### print Libraries Files
-echo $USAGE_FILE
-echo $UTILS_FILE
-echo $NOTIFY_EMAIL_FILE
+#echo $USAGE_FILE
+#echo $UTILS_FILE
+#echo $NOTIFY_EMAIL_FILE
 
 ########## Check if Libraries Files Exists
 if [[ -f "$USAGE_FILE" ]]; then
@@ -89,7 +98,7 @@ main(){
                 ;;
 
             disk|DISK)
-                case $2 in 
+                case "${2:-}" in 
                     ""|--help)
                         show_usage_disk_monitoring
                         exit 0
@@ -103,7 +112,7 @@ main(){
                         exit 0
                         ;;
                     top)
-                        case $3 in
+                        case "${3:-}" in
                             "")
                                 show_message "Show largest directories under a given path"
                                 exit 0
@@ -122,7 +131,7 @@ main(){
                         esac
                         ;;
                     extend)
-                        case $3 in
+                        case "${3:-}" in
                             "")
                                 show_message "Extend disk (LVM-based systems)"
                                 exit 0
@@ -152,14 +161,14 @@ main(){
                 ;;
 
             cpu|CPU)
-                case $2 in 
+                case "${2:-}" in 
                     ""|--help)
                         show_usage_cpu_monitoring
                         exit 0
                         ;;
                    
                     top)
-                        case $3 in
+                        case "${3:-}" in
                             "")
                                 show_message "Show top CPU-consuming processes"
                                 ;;
@@ -186,7 +195,7 @@ main(){
                 ;;
          
             memory)
-                case $2 in 
+                case "${2:-}" in 
                     ""|--help)
                         show_usage_memory_monitoring
                         exit 0
@@ -199,7 +208,7 @@ main(){
                 ;;
             
             report)
-                case $2 in 
+                case "${2:-}" in 
                     ""|--help)
                         show_usage_report
                         exit 0
@@ -211,7 +220,7 @@ main(){
                 esac
                 ;;
             backup)
-                case $2 in 
+                case "${2:-}" in 
                     ""|--help)
                         show_usage_backup
                         exit 0
@@ -223,13 +232,13 @@ main(){
                 esac
                 ;;
             notify)
-                case $2 in 
+                case "${2:-}" in 
                     ""|--help)
                         show_usage_notify
                         exit 0
                         ;;
                     email)
-                        case $3 in
+                        case "${3:-}" in
                             "")
                                 show_message "Send notification via email"
                                 send_email

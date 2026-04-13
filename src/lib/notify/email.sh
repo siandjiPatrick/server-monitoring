@@ -9,7 +9,7 @@ else
     EMAIL_CONFIG_FILE="$(readlink -m $(dirname "$0")/../config/email_template.conf)"
 fi
 
-echo "Email Config File: ${EMAIL_CONFIG_FILE}"
+#echo "Email Config File: ${EMAIL_CONFIG_FILE}"
 
 if [[ -f "$EMAIL_CONFIG_FILE" ]]; then
     source "$EMAIL_CONFIG_FILE"
@@ -45,7 +45,7 @@ Content-Type: text/plain; name="$(basename "$report_filename")"
 Content-Disposition: attachment; filename="$(basename "$report_filename")"
 Content-Transfer-Encoding: base64
 
-$(base64 notify/report.txt)
+$(base64 "$(realpath $report_filename)")
 
 --BOUNDARY--
 EOF

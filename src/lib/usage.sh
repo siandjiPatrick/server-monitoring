@@ -1,19 +1,19 @@
 #!/bin/bash
 show_usage() {
-
-info="${INFO:-🧰🚀 smart-monitor - System Monitoring & Automation CLI Tool}"
+local APP_NAME="siandjiservmon"
+info="${INFO:-🧰🚀 $APP_NAME - System Monitoring & Automation CLI Tool}"
 
 local usage="${USAGE:-$(cat <<EOF
 ℹ️ Usage:
 ==================================================================================
-   smart-monitor [GLOBAL OPTIONS] COMMAND [SUBCOMMAND] [ARGS...]
+   $APP_NAME [GLOBAL OPTIONS] COMMAND [SUBCOMMAND] [ARGS...]
 EOF
 )}"
 
 local description="${DESCRIPTION:-$(cat <<EOF
 ℹ️ Description:
 ==================================================================================
-  📊 smart-monitor is a system monitoring and automation CLI tool that can
+  📊 $APP_NAME is a system monitoring and automation CLI tool that can
   📡 collect metrics, 🧠 analyze system state, 📄 generate reports,
   ⚙️ trigger actions, and 📤 publish results via multiple outputs
   (terminal, JSON, email, web).
@@ -135,16 +135,16 @@ EOF
 local examples="${EXAMPLES:-$(cat <<EOF
 📚 Examples:
 
-  🚀 smart-monitor status
-  🚀 smart-monitor disk usage --human
-  🚀 smart-monitor disk top /home
-  🚀 smart-monitor cpu top -n 5
-  🚀 smart-monitor report generate --format html --to web
-  🚀 smart-monitor report generate --to email --email admin@example.com
-  🚀 smart-monitor monitor --interval 60 --alert
-  🚀 smart-monitor backup --source /data --dest /backup
-  🚀 smart-monitor notify email --to admin@example.com
-  🚀 smart-monitor notify web --url https://example.com/webhook
+  🚀 $APP_NAME status
+  🚀 $APP_NAME disk usage --human
+  🚀 $APP_NAME disk top /home
+  🚀 $APP_NAME cpu top -n 5
+  🚀 $APP_NAME report generate --format html --to web
+  🚀 $APP_NAME report generate --to email --email admin@example.com
+  🚀 $APP_NAME monitor --interval 60 --alert
+  🚀 $APP_NAME backup --source /data --dest /backup
+  🚀 $APP_NAME notify email --to admin@example.com
+  🚀 $APP_NAME notify web --url https://example.com/webhook
 EOF
 )}"
 

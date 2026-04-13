@@ -108,7 +108,7 @@ echo "==============================================================="
 echo
 
 # install Package 
-#sudo rpm -e "$PACKAGE_NAME"
+rpm -q "$PACKAGE_NAME" && sudo rpm -e "$PACKAGE_NAME"
 #sudo rpm -ivh siandjiservmon-1.0.1-1.el9.noarch.rpm
 sudo rpm -ivh "${PACKAGE_DIR}/rpmbuild/RPMS/noarch/*"
 

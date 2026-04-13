@@ -42,7 +42,7 @@ Smart monitoring tool with modular scripts made by Patrick.
 rm -rf %{buildroot}
 
 # siandjiservmon Data
-install -d -m 0755 %{buildroot}/var/lib/siandjiservmon
+install -D -m 0755 src/data/report.txt %{buildroot}/var/lib/siandjiservmon/report.txt
 
 # Binary
 install -Dm755 src/bin/siandjiservmon.sh %{buildroot}/usr/bin/siandjiservmon
@@ -110,8 +110,9 @@ getent passwd siandjiservmon >/dev/null || useradd -r -g siandjiservmon -d /var/
 
 %attr(755, siandjiservmon, siandjiservmon) /var/log/siandjiservmon
 %attr(664, siandjiservmon, siandjiservmon) /var/log/siandjiservmon/siandjiservmon.log
-%attr(755, siandjiservmon, siandjiservmon) /var/lib/siandjiservmon
 
+#%attr(755, siandjiservmon, siandjiservmon) /var/lib/siandjiservmon
+%attr(664, siandjiservmon, siandjiservmon) /var/lib/siandjiservmon/report.txt
 
 
 # =====================
