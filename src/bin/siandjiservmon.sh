@@ -145,8 +145,7 @@ main(){
                         esac
                         ;;
                     *)
-			write_log_message "${LOG_FORMAT}-Disk-Error->command not Found! \
-			                	please check > $0 $1 --help" "$LOG_FILE"
+			write_log_message "${LOG_FORMAT}-Disk-Error->command not Found! please check > $0 $1 --help" "$LOG_FILE"
                         show_error_message "Error: command not Found! please check > $0 $1 --help "
                         ;;
                 esac
@@ -180,8 +179,7 @@ main(){
                         ;;
                            
                     *)
-			write_log_message "${LOG_FORMAT}-CPU-Error->command not Found! \
-			        	please check > $0 $1 --help" "$LOG_FILE"
+			write_log_message "${LOG_FORMAT}-CPU-Error->command not Found! please check > $0 $1 --help" "$LOG_FILE"
                         show_error_message "Error: command not Found! please check > $0 $1 --help "
                         ;;
                 esac
@@ -194,8 +192,7 @@ main(){
                         exit 0
                         ;;
                 *)
-	            write_log_message "${LOG_FORMAT}-Memory-Error->command not Found! \ 
-			    please check > $0 $1 --help" "$LOG_FILE"
+	            write_log_message "${LOG_FORMAT}-Memory-Error->command not Found! please check > $0 $1 --help" "$LOG_FILE"
                     show_error_message "Error: command not Found! please check > $0 $1 --help "
                     ;;
                 esac
@@ -208,8 +205,7 @@ main(){
                         exit 0
                         ;;
                 *)
-		   write_log_message "${LOG_FORMAT}-report-Error->command not Found! \
-			   please check > $0 $1 --help" "$LOG_FILE"
+		   write_log_message "${LOG_FORMAT}-report-Error->command not Found! please check > $0 $1 --help" "$LOG_FILE"
                     show_error_message "Error: command not Found! please check > $0 $1 --help "
                     ;;
                 esac
@@ -221,8 +217,7 @@ main(){
                         exit 0
                         ;;
                 *)
-		    write_log_message "${LOG_FORMAT}-backup-Error->command not Found! \
-			    please check > $0 $1 --help" "$LOG_FILE"
+		    write_log_message "${LOG_FORMAT}-backup-Error->command not Found! please check > $0 $1 --help" "$LOG_FILE"
                     show_error_message "Error: command not Found! please check > $0 $1 --help "
                     ;;
                 esac
@@ -249,8 +244,7 @@ main(){
                                 shift
                                 ;;
                             *)
-				write_log_message "${LOG_FORMAT}-email-Error->command not Found! \
-				       	please check > $0 $1 --help" "$LOG_FILE"
+				write_log_message "${LOG_FORMAT}-email-Error->command not Found! please check > $0 $1 --help" "$LOG_FILE"
                                 show_error_message "Error: command not Found! please check > $0 $1 --help "
                                 ;;
                         esac
