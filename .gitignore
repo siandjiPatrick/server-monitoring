@@ -35,3 +35,7 @@ temp/
 [._]ss[a-gi-z]
 [._]sw[a-p]
 */.env
+scripts/.nexus-credential
+scripts/.sign-rpm-key
+*.nexus-credential
+.sign-rpm-key

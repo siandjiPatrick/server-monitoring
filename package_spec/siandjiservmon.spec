@@ -1,5 +1,5 @@
 Name:           siandjiservmon
-Version:        1.0
+Version:        1.0.1
 Release:        1%{?dist}
 Summary:        Smart Monitoring Tool
 
@@ -13,12 +13,15 @@ BuildRequires:  bash
 BuildRequires:  systemd
 
 Requires:       bash
-Requires:	      postfix 
+Requires:	postfix 
 Requires:       s-nail 
 Requires:       cyrus-sasl 
 Requires:       cyrus-sasl-plain
+requires:       gpg
+requires: 	curl
+requires:       rpm-sign
 
-Source0:        siandjiservmon-1.0.tar.gz
+Source0:        siandjiservmon-1.0.1.tar.gz
 
 %description
 Smart monitoring tool with modular scripts made by Patrick.
@@ -26,6 +29,8 @@ Smart monitoring tool with modular scripts made by Patrick.
 # =====================
 %prep
 %setup -q -n server-monitoring
+groupadd -r siandjiservmon || true
+useradd -r -d /var/lib/siandjiservmon -g siandjiservmon -s /sbin/nologin siandjiservmon || :
 
 # =====================
 %build
@@ -35,6 +40,9 @@ Smart monitoring tool with modular scripts made by Patrick.
 %install
 
 rm -rf %{buildroot}
+
+# siandjiservmon Data
+install -d %{buildroot}/var/lib/siandjiservmon
 
 # Binary
 install -Dm755 src/bin/siandjiservmon.sh \
@@ -53,9 +61,7 @@ cp src/config/email_template.conf %{buildroot}/etc/siandjiservmon/
 cp src/config/siandjiservmon.conf %{buildroot}/etc/siandjiservmon/
 
 # Logs
-mkdir -p %{buildroot}/var/log/siandjiservmon
-chown patrick:patrick %{buildroot}/var/log/siandjiservmon
-chmod 770 %{buildroot}/var/log/siandjiservmon
+install -d %{buildroot}/var/log/siandjiservmon
 
 # systemd
 if [ -d src/systemd ]; then
@@ -93,8 +99,13 @@ systemctl daemon-reload || true
 # =====================
 %files
 
+#set default permision
+%defattr(0644, root, root, 0755)
+
+#%{_bindir}/siandjiservmon
 /usr/local/bin/siandjiservmon
 
+#%{_libdir}/siandjiservmon/*
 /usr/lib/siandjiservmon/lib/usage.sh
 /usr/lib/siandjiservmon/lib/utils.sh
 
@@ -107,13 +118,18 @@ systemctl daemon-reload || true
 /usr/lib/siandjiservmon/lib/notify/send-monitoring-mail.sh
 /usr/lib/siandjiservmon/lib/notify/web.sh
 
+/usr/lib/systemd/system/siandjiservmon.service
+
+#%{_sysconfdir}/siandjiservmon/*
 %config(noreplace) /etc/siandjiservmon/postfix.conf.example
 %config(noreplace) /etc/siandjiservmon/email_template.conf
 %config(noreplace) /etc/siandjiservmon/siandjiservmon.conf
 
-/var/log/siandjiservmon
 
-/usr/lib/systemd/system/siandjiservmon.service
+%attr(755, siandjiservmon, siandjiservmon) /var/log/siandjiservmon
+%attr(755, siandjiservmon, siandjiservmon) /var/lib/siandjiservmon
+
+
 
 # =====================
 %changelog

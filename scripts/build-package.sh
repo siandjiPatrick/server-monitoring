@@ -14,7 +14,7 @@ echo "project directory : $PROJECT_DIR"
 PACKAGE_DIR="$(readlink -m "${PROJECT_DIR}/../my-Packages")"
 
 PACKAGE_NAME="siandjiservmon"
-PACKAGE_VERSION="1.0"
+PACKAGE_VERSION="1.0.1"
 PACKAGE_TAR_FILE="${PACKAGE_NAME}-${PACKAGE_VERSION}.tar.gz"
 
 
@@ -108,5 +108,7 @@ echo "==============================================================="
 echo
 
 # install Package 
+sudo rpm -e "$PACKAGE_NAME"
+#sudo rpm -ivh siandjiservmon-1.0.1-1.el9.noarch.rpm
+sudo rpm -ivh "${PACKAGE_DIR}/rpmbuild/RPMS/noarch/*"
 
-#sudo rpm -ivh "${PACKAGE_DIR}/rpmbuild/RPMS/noarch/*"

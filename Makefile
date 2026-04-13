@@ -17,8 +17,8 @@ help:
 	@echo ""
 	@echo "Available targets:"
 	@echo "  make build                    - Build the project"
-	@echo "  make package                  - package and generate rpm"
-	@echo "  make sign-package             - Sign rpm Package"
+	@echo "  make install                  - package and generate rpm"
+	@echo "  make sign                     - Sign rpm Package"
 	@echo "  make deploy-to-nexus          - Deploy Package to nexus repository"
 	@echo "  make deploy-to-webserver      - Deploy Package to httpd webserver"
 	@echo "  make test                     - Test rpm Package"
@@ -32,9 +32,8 @@ build:
 	@bash scripts/build-package.sh
 
 ###################### GENERATE RPM PACKAGE  #################
-package:
-	@echo "package project $(APP)..."
-	@bash scripts/build-package.sh
+install:
+	@echo "install package $(APP) in progress"
 
 ####################### SIGN PACKAGE #########################
 sign-package:

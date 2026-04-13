@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-source "$(dirname "$0")/.env"
+source "$(dirname "$0")/.nexus-credential"
 
 #APP_NAME="server-monitoring"
 
@@ -13,13 +13,9 @@ NEXUS_REPO_NAME="siandji-rpm"
 
 NEXUS_REPO_URL="https://${NEXUS_SUBDOMAIN}.${NEXUS_DOMAIN}/${NEXUS_REPO_PATH}/${NEXUS_REPO_NAME}"
 
-NEXUS_USERNAME="${USERNAME-}"
-NEXUS_PASSWORD="${PASSWORD-}"
+NEXUS_USERNAME="${USERNAME:-}"
+NEXUS_PASSWORD="${PASSWORD:-}"
 
-if [[ -z "$NEXUS_USERNAME" || -z "$NEXUS_PASSWORD" ]];then
-	echo "username or password not defined."
-	exit 1
-fi
 
 WEBSERVER_HOSTNAME="localhost"
 REPO_PATH=""
@@ -27,9 +23,15 @@ REPO_PATH=""
 
 main(){
  	local RPM_PACKAGES
-	RPM_PACKAGES="$(realpath "$(dirname "$0")/../../my-Packages/rpmbuild/RPMS/noarch/siandjiservmon-1.0-1.el9.noarch.rpm")"
-	case "${1-}" in
+	RPM_PACKAGES="$(realpath "$(dirname "$0")/../../my-Packages/rpmbuild/RPMS/noarch/siandjiservmon-1.0.1-1.el9.noarch.rpm")"
+	case "${1:-}" in
 		--nexus|-n)
+			
+			if [[ -z "$NEXUS_USERNAME" || -z "$NEXUS_PASSWORD" ]];then
+				echo "username or password not defined."
+				echo "Please set the Variable USERNAME AND PASSWOR for the Nexus repository"
+				exit 1
+			fi
 			echo "deploy to nexus ..."
 			echo "RPM PACKAGE NAME --> $RPM_PACKAGES"
 		        echo "nexus repo url --> ${NEXUS_REPO_URL}"
