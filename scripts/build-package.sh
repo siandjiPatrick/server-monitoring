@@ -5,6 +5,8 @@ set -euo pipefail
 
 PACKAGE_FORMAT=$(date +%Y-%m-%d-%H:%M:%S)
 
+#RELEASE_VERSION=1
+
 SCRIPT_DIR="$(dirname "$0")"
 PROJECT_DIR="$(readlink -m "${SCRIPT_DIR}/..")"
 
@@ -13,34 +15,34 @@ echo "project directory : $PROJECT_DIR"
 
 PACKAGE_DIR="$(readlink -m "${PROJECT_DIR}/../my-Packages")"
 
-PACKAGE_NAME="siandjiservmon"
-PACKAGE_VERSION="1.0.1"
-PACKAGE_TAR_FILE="${PACKAGE_NAME}-${PACKAGE_VERSION}.tar.gz"
+#PACKAGE_NAME="siandjiservmon"
+#PACKAGE_VERSION="1.0.1"
+#PACKAGE_TAR_FILE="${PACKAGE_NAME}-${PACKAGE_VERSION}.tar.gz"
 
-
+RPMBUILD_DIR="${PACKAGE_DIR}/rpmbuild"
 
 
 echo "package directory : $PACKAGE_DIR"
 echo "package tar file : $PACKAGE_TAR_FILE"
 
-if [[ ! -e "$PACKAGE_DIR" ]]; then
+if [[ ! -d "$PACKAGE_DIR" ]]; then
     mkdir -p "$PACKAGE_DIR"
 else
     echo "$PACKAGE_DIR already exists."
 fi
 
 
-if [[ -e "${PACKAGE_DIR}/${PACKAGE_TAR_FILE}" ]]; then
-    
-    mv "${PACKAGE_DIR}/${PACKAGE_TAR_FILE}" "${PACKAGE_DIR}/${PACKAGE_FORMAT}-${PACKAGE_TAR_FILE}"
-
-fi
-
-
 # create rpmbuild tree
-if [[ ! -e "${PACKAGE_DIR}/rpmbuild" ]]; then
+if [[ ! -d "${RPMBUILD_DIR}" ]]; then
+    echo "rpmbuild_dir : ${RPMBUILD_DIR}"
     rpmdev-setuptree
     mv ~/rpmbuild "$PACKAGE_DIR"
+fi
+
+if [[ -e "${RPMBUILD_DIR}/SOURCES/${PACKAGE_TAR_FILE}" ]]; then
+
+    mv "${RPMBUILD_DIR}/SOURCES/${PACKAGE_TAR_FILE}" "${RPMBUILD_DIR}/SOURCES/${PACKAGE_FORMAT}-${PACKAGE_TAR_FILE}"
+
 fi
 
 
@@ -52,24 +54,31 @@ echo
 
 
 # Archive and compress project directory to my-Packages/rpmbuild/SOURCES
-tar -czf "${PACKAGE_DIR}/rpmbuild/SOURCES/${PACKAGE_TAR_FILE}" \
+tar -czf "${RPMBUILD_DIR}/SOURCES/${PACKAGE_TAR_FILE}" \
     -C "${PROJECT_DIR}/.." \
     "$(basename "${PROJECT_DIR}")"
 
 
 echo
 echo "==============================================================="
-echo "cp package spec file into rpmbuild/SPECS"
+echo "Generate package spec file into rpmbuild/SPECS"
 echo "==============================================================="
 echo
 
-# cp package spec file to rpmbuild/SPECS
-cp -p "${PROJECT_DIR}/package_spec/siandjiservmon.spec" "${PACKAGE_DIR}/rpmbuild/SPECS/"
+source ./generate_spec.sh
 
-tree "${PACKAGE_DIR}/rpmbuild"
+tree "${RPMBUILD_DIR}"
 
-# create rpm package
-#echo "rpmbuild ${PACKAGE_DIR}"
+echo
+echo "==============================================================="
+echo "Create and push new release $new_version to Remote repository"
+echo "==============================================================="
+echo
+
+if [[ "$latest_version" != "$new_version" ]];then
+	git tag -a "v${new_version}" -m "release v${new_version}"
+	git push origin "v${new_version}"
+fi
 
 echo
 echo "==============================================================="
@@ -79,8 +88,8 @@ echo
 
 # per default rpmbuild build package from ~/rpmbuild,
 # we have to indicate where our rpmbuild dir are 
-rpmbuild --define "_topdir ${PACKAGE_DIR}/rpmbuild" \
-        -ba "${PACKAGE_DIR}/rpmbuild/SPECS/siandjiservmon.spec" -v
+rpmbuild --define "_topdir ${RPMBUILD_DIR}" \
+        -ba "${RPMBUILD_DIR}/SPECS/${PACKAGE_NAME}.spec" -v
 
 
 echo
@@ -89,7 +98,7 @@ echo "Get Informations About the Package"
 echo "==============================================================="
 echo
 # show package info
-rpm -qpi "${PACKAGE_DIR}/rpmbuild/RPMS/noarch/*"
+rpm -qpi "${RPMBUILD_DIR}/RPMS/noarch/*"
 
 echo
 echo "==============================================================="
@@ -98,7 +107,7 @@ echo "==============================================================="
 echo
 
 # list Package file
-rpm -qpl "${PACKAGE_DIR}/rpmbuild/RPMS/noarch/*"
+rpm -qpl "${RPMBUILD_DIR}/RPMS/noarch/*"
 
 
 echo
@@ -108,7 +117,6 @@ echo "==============================================================="
 echo
 
 # install Package 
-rpm -q "$PACKAGE_NAME" && sudo rpm -e "$PACKAGE_NAME"
-#sudo rpm -ivh siandjiservmon-1.0.1-1.el9.noarch.rpm
-sudo rpm -ivh "${PACKAGE_DIR}/rpmbuild/RPMS/noarch/*"
+sudo rpm -q "$PACKAGE_NAME" &&  rpm -e "$PACKAGE_NAME"
+sudo rpm -ivh "${RPMBUILD_DIR}/RPMS/noarch/*"
 
