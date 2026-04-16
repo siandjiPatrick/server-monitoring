@@ -5,8 +5,6 @@ set -euo pipefail
 
 PACKAGE_FORMAT=$(date +%Y-%m-%d-%H:%M:%S)
 
-#RELEASE_VERSION=1
-
 SCRIPT_DIR="$(dirname "$0")"
 PROJECT_DIR="$(readlink -m "${SCRIPT_DIR}/..")"
 
@@ -14,13 +12,7 @@ echo "package script directory : $SCRIPT_DIR"
 echo "project directory : $PROJECT_DIR"
 
 PACKAGE_DIR="$(readlink -m "${PROJECT_DIR}/../my-Packages")"
-
-#PACKAGE_NAME="siandjiservmon"
-#PACKAGE_VERSION="1.0.1"
-#PACKAGE_TAR_FILE="${PACKAGE_NAME}-${PACKAGE_VERSION}.tar.gz"
-
 RPMBUILD_DIR="${PACKAGE_DIR}/rpmbuild"
-
 
 echo "package directory : $PACKAGE_DIR"
 echo "package tar file : $PACKAGE_TAR_FILE"
@@ -31,12 +23,11 @@ else
     echo "$PACKAGE_DIR already exists."
 fi
 
-
 # create rpmbuild tree
 if [[ ! -d "${RPMBUILD_DIR}" ]]; then
     echo "rpmbuild_dir : ${RPMBUILD_DIR}"
     rpmdev-setuptree
-    mv ~/rpmbuild "$PACKAGE_DIR"
+    mv "$HOME/rpmbuild" "$PACKAGE_DIR"
 fi
 
 if [[ -e "${RPMBUILD_DIR}/SOURCES/${PACKAGE_TAR_FILE}" ]]; then
@@ -45,19 +36,15 @@ if [[ -e "${RPMBUILD_DIR}/SOURCES/${PACKAGE_TAR_FILE}" ]]; then
 
 fi
 
-
 echo
 echo "==============================================================="
 echo "Archive and compress project directory to my-Packages/rpmbuild/SOURCES"
 echo "==============================================================="
 echo
-
-
 # Archive and compress project directory to my-Packages/rpmbuild/SOURCES
 tar -czf "${RPMBUILD_DIR}/SOURCES/${PACKAGE_TAR_FILE}" \
     -C "${PROJECT_DIR}/.." \
     "$(basename "${PROJECT_DIR}")"
-
 
 echo
 echo "==============================================================="
@@ -65,7 +52,7 @@ echo "Generate package spec file into rpmbuild/SPECS"
 echo "==============================================================="
 echo
 
-source ./generate_spec.sh
+source "$(dirname "$0")/generate_spec.sh"
 
 tree "${RPMBUILD_DIR}"
 
@@ -91,6 +78,19 @@ echo
 rpmbuild --define "_topdir ${RPMBUILD_DIR}" \
         -ba "${RPMBUILD_DIR}/SPECS/${PACKAGE_NAME}.spec" -v
 
+echo
+echo "==============================================================="
+echo "Sign Package $PACKAGE_NAME"
+echo "==============================================================="
+echo
+
+RPM_FILE=$(ls -t "${RPMBUILD_DIR}/RPMS/noarch/"*.rpm | head -n 1)
+#for package in "${RPMBUILD_DIR}/RPMS/noarch"/*.rpm;do
+rpmsign --addsign "$RPM_FILE"
+
+sudo rpm --import "$(dirname "$0")/../my-Packages/gpg/RPM-GPG-KEY-siandjiservmon"
+
+rpm -Kv "${RPM_FILE}"
 
 echo
 echo "==============================================================="
@@ -117,6 +117,6 @@ echo "==============================================================="
 echo
 
 # install Package 
-sudo rpm -q "$PACKAGE_NAME" &&  rpm -e "$PACKAGE_NAME"
-sudo rpm -ivh "${RPMBUILD_DIR}/RPMS/noarch/*"
-
+sudo rpm -q "$PACKAGE_NAME" && sudo  rpm -e "$PACKAGE_NAME"
+#sudo rpm -ivh "${RPMBUILD_DIR}/RPMS/noarch/*"
+sudo rpm -ivf "${RPM_FILE}"

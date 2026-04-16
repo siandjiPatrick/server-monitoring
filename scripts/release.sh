@@ -55,5 +55,5 @@ PACKAGE_TAR_FILE="${PACKAGE_NAME}-${new_version}.tar.gz"
 
 echo "package Tar Filename = $PACKAGE_TAR_FILE"
 
-. ./build-package.sh 
+. "$(dirname "$0")/build-package.sh" 
 
